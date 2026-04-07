@@ -1,0 +1,2361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nex Playground PR & 媒体覆盖调研报告</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      font-size: 14px;
+    }
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: white;
+      padding: 32px 40px;
+    }
+    header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    header .meta { opacity: 0.7; font-size: 13px; }
+    header .asin {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border-radius: 4px;
+      padding: 2px 10px;
+      font-family: monospace;
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .stats-bar {
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 16px 40px;
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat .num { font-size: 28px; font-weight: 700; color: #0f3460; }
+    .stat .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* 模块容器 */
+    .module {
+      margin: 20px 40px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .module-header {
+      background: #1a1a2e;
+      color: white;
+      padding: 16px 20px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .module-header:hover { background: #16213e; }
+    .module-title {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .module-count {
+      background: rgba(255,255,255,0.2);
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .module-toggle {
+      font-size: 20px;
+      transition: transform 0.2s;
+    }
+    .module-toggle.collapsed { transform: rotate(-90deg); }
+    .module-content {
+      max-height: 10000px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .module-content.collapsed { max-height: 0; }
+
+    /* 控制栏 */
+    .controls {
+      padding: 16px 20px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-btn {
+      padding: 6px 16px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background: #0f3460;
+      color: white;
+      border-color: #0f3460;
+    }
+    input[type=search] {
+      padding: 6px 14px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      font-size: 13px;
+      width: 220px;
+      outline: none;
+    }
+    input[type=search]:focus { border-color: #0f3460; }
+
+    /* 表格样式 */
+    .table-wrap {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead th {
+      background: #f8f9fa;
+      color: #333;
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f8f9ff; }
+    tbody tr.hidden { display: none; }
+    td { padding: 11px 14px; vertical-align: top; font-size: 13px; }
+
+    .date { white-space: nowrap; color: #555; font-size: 12px; }
+    .media-name { font-weight: 600; font-size: 13px; }
+    .media-name a { color: #0f3460; text-decoration: none; }
+    .media-name a:hover { text-decoration: underline; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .badge-parenting  { background: #fce4ec; color: #c2185b; }
+    .badge-tech       { background: #e3f2fd; color: #1565c0; }
+    .badge-gaming     { background: #e8f5e9; color: #2e7d32; }
+    .badge-lifestyle  { background: #fff3e0; color: #e65100; }
+    .badge-business   { background: #f3e5f5; color: #6a1b9a; }
+    .badge-press      { background: #e0f7fa; color: #006064; }
+    .badge-video      { background: #fbe9e7; color: #bf360c; }
+    .badge-news       { background: #f1f8e9; color: #33691e; }
+
+    .title { max-width: 280px; }
+    .title-text { font-size: 13px; line-height: 1.4; }
+    .title a { color: #333; text-decoration: none; }
+    .title a:hover { color: #0f3460; text-decoration: underline; }
+
+    .link-cell { max-width: 200px; }
+    .amz-link {
+      display: block;
+      font-family: monospace;
+      font-size: 11px;
+      color: #c45500;
+      word-break: break-all;
+      background: #fff8f0;
+      padding: 3px 6px;
+      border-radius: 3px;
+      margin-bottom: 3px;
+      text-decoration: none;
+    }
+    .amz-link:hover { background: #ffe0b2; }
+    .no-link { color: #bbb; font-size: 12px; font-style: italic; }
+
+    .tag-pill {
+      display: inline-block;
+      background: #e8f4fd;
+      border: 1px solid #90caf9;
+      color: #1565c0;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin: 2px 2px 2px 0;
+    }
+    .tag-inferred { border-style: dashed; opacity: 0.7; }
+    .no-tag { color: #bbb; font-size: 12px; font-style: italic; }
+
+    .note { font-size: 11px; color: #777; max-width: 200px; line-height: 1.4; }
+    .status-err  { color: #c62828; }
+
+    /* 视频模块特殊样式 */
+    .video-thumb {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+    .creator-name {
+      font-weight: 600;
+      color: #0f3460;
+    }
+    .engagement {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: #666;
+    }
+    .engagement-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .video-desc {
+      font-size: 12px;
+      color: #555;
+      line-height: 1.5;
+      max-width: 300px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #aaa;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Nex Playground — PR & 媒体覆盖调研报告</h1>
+  <div class="meta">媒体传播覆盖分析 · Amazon Associates tag 提取 · 视频内容追踪</div>
+  <div class="asin">ASIN: B0D2JGYX3F</div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><div class="num">181</div><div class="label">PR 文章/外链</div></div>
+  <div class="stat"><div class="num" id="tiktok-count">8</div><div class="label">TikTok 视频</div></div>
+  <div class="stat"><div class="num" id="youtube-count">4</div><div class="label">YouTube 视频</div></div>
+  <div class="stat"><div class="num">8</div><div class="label">Amazon Live</div></div>
+  <div class="stat"><div class="num">10</div><div class="label">含 Affiliate Tag</div></div>
+</div>
+
+<!-- 模块 1: PR 文章/外链 -->
+<div class="module">
+  <div class="module-header" onclick="toggleModule('pr')">
+    <div class="module-title">
+      <span>📰 PR 文章 & 媒体外链</span>
+      <span class="module-count">181 条</span>
+    </div>
+    <span class="module-toggle" id="toggle-pr">▼</span>
+  </div>
+  <div class="module-content" id="content-pr">
+    <div class="controls">
+      <span style="font-size:13px;color:#555;margin-right:4px;">筛选：</span>
+      <button class="filter-btn active" data-filter="all">全部</button>
+      <button class="filter-btn" data-filter="育儿博客">育儿博客</button>
+      <button class="filter-btn" data-filter="科技媒体">科技媒体</button>
+      <button class="filter-btn" data-filter="游戏媒体">游戏媒体</button>
+      <button class="filter-btn" data-filter="礼品导购">礼品导购</button>
+      <button class="filter-btn" data-filter="新闻发布">新闻发布</button>
+      <button class="filter-btn" data-filter="商业分析">商业分析</button>
+      <button class="filter-btn" data-filter="has-tag">仅含 tag</button>
+      <input type="search" id="search-pr" placeholder="搜索媒体/标题/tag…">
+    </div>
+    <div class="table-wrap">
+      <table id="pr-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>发布日期</th>
+            <th>媒体名称</th>
+            <th>类型</th>
+            <th>文章标题</th>
+            <th>引流链接</th>
+            <th>联盟标签 (tag=)</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody>
+
+    <!-- 1 -->
+    <tr data-type="育儿博客" data-tag="yes">
+      <td>1</td>
+      <td class="date">2024-10-24</td>
+      <td class="media-name"><a href="https://themintchipmama.com/2024/10/24/nex-playground-family-game-console-is-awesome/" target="_blank">The Mint Chip Mama</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://themintchipmama.com/2024/10/24/nex-playground-family-game-console-is-awesome/" target="_blank">Nex Playground Family Game Console is AWESOME!</a></span></td>
+      <td class="link-cell">
+        <a class="amz-link" href="https://amzn.to/4dHZgbC" target="_blank">amzn.to/4dHZgbC</a>
+        <a class="amz-link" href="https://amzn.to/48bpimH" target="_blank">amzn.to/48bpimH</a>
+        <span style="font-size:11px;color:#999">+12 更多 amzn.to 链接</span>
+      </td>
+      <td><span class="tag-pill">thmichma-20</span></td>
+      <td class="note">最早评测之一；含 amazon.com/shop/themintchipmama 商店页；所有链接统一使用同一 tag；文章更新于 2025-07-04</td>
+    </tr>
+
+    <!-- 2 -->
+    <tr data-type="育儿博客" data-tag="yes">
+      <td>2</td>
+      <td class="date">2025-10-21</td>
+      <td class="media-name"><a href="https://theeverymom.com/nex-playground-review/" target="_blank">The Everymom</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://theeverymom.com/nex-playground-review/" target="_blank">Nex Playground Review: Is This Active Gaming Console Worth It for Families?</a></span></td>
+      <td class="link-cell">
+        <a class="amz-link" href="https://rstyle.me/+8whQ2EtHHya_PSrPj6kytw" target="_blank">rstyle.me/+8whQ2Et… (→ Amazon)</a>
+      </td>
+      <td><span class="tag-pill">theeverymo-1-bg-20</span></td>
+      <td class="note">通过 RewardStyle/LTK 中转链接指向 amazon.com/dp/B0D2JGYX3F；dateModified: 2025-12-01</td>
+    </tr>
+
+    <!-- 3 -->
+    <tr data-type="育儿博客" data-tag="yes">
+      <td>3</td>
+      <td class="date">2024-11-21</td>
+      <td class="media-name"><a href="https://www.momsandcrafters.com/nex-playground-review/" target="_blank">Moms and Crafters</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.momsandcrafters.com/nex-playground-review/" target="_blank">Nex Playground Review - Active Video Game System</a></span></td>
+      <td class="link-cell">
+        <a class="amz-link" href="https://amzn.to/3Zf6Ruq" target="_blank">amzn.to/3Zf6Ruq</a>
+      </td>
+      <td><span class="tag-pill">momsandcraft-20</span></td>
+      <td class="note">CTA 按钮"GET IT ON AMAZON"在文中出现 8+ 次；另有个人商店 amazon.com/shop/menuchadesign</td>
+    </tr>
+
+    <!-- 4 -->
+    <tr data-type="育儿博客" data-tag="yes">
+      <td>4</td>
+      <td class="date">2025-06-26</td>
+      <td class="media-name"><a href="https://thriftyniftymommy.com/nex-playground-game-system-review-family-friendly-gaming-youll-love/" target="_blank">Thrifty Nifty Mommy</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://thriftyniftymommy.com/nex-playground-game-system-review-family-friendly-gaming-youll-love/" target="_blank">Nex Playground Game System Review: Family Friendly Gaming You'll Love!</a></span></td>
+      <td class="link-cell">
+        <a class="amz-link" href="https://amzn.to/4k78v94" target="_blank">amzn.to/4k78v94</a>
+        <a class="amz-link" href="https://amzn.to/3Zvpta9" target="_blank">amzn.to/3Zvpta9</a>
+      </td>
+      <td><span class="tag-pill">thriftymand08-20</span></td>
+      <td class="note">图片路径含 /2024/09/，原始内容可能创作于 2024-09；另含 Nex 官方 referral：shop.nexplayground.com/THRIFTYNIFTYMOMMY</td>
+    </tr>
+
+    <!-- 5 -->
+    <tr data-type="育儿博客" data-tag="yes">
+      <td>5</td>
+      <td class="date">2025-03-31</td>
+      <td class="media-name"><a href="https://www.todaysparent.com/shopping/my-familys-nex-playground-review/" target="_blank">Today's Parent</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.todaysparent.com/shopping/my-familys-nex-playground-review/" target="_blank">My Family's Nex Playground Review</a></span></td>
+      <td class="link-cell"><span class="no-link">页面被 Cloudflare 拦截</span></td>
+      <td><span class="tag-pill tag-inferred">todaysparentamzca-20 *</span></td>
+      <td class="note">* 从同站其他页面推断，未直接确认；加拿大媒体，推荐美区 Amazon 购买</td>
+    </tr>
+
+    <!-- 6 -->
+    <tr data-type="育儿博客" data-tag="yes">
+      <td>6</td>
+      <td class="date">2025-02-21</td>
+      <td class="media-name"><a href="https://www.mother.ly/child/nex-playground-review/" target="_blank">Motherly</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.mother.ly/child/nex-playground-review/" target="_blank">Nex Playground review: The best active gaming for kids</a></span></td>
+      <td class="link-cell">
+        <a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F?tag=motherly01-20" target="_blank">amazon.com/dp/B0D2JGYX3F?<br>tag=motherly01-20</a>
+      </td>
+      <td><span class="tag-pill">motherly01-20</span></td>
+      <td class="note">完整 Amazon Associates URL 直接嵌入正文；同时链接 Best Buy（via howl.link）</td>
+    </tr>
+
+    <!-- 7 -->
+    <tr data-type="礼品导购" data-tag="yes">
+      <td>7</td>
+      <td class="date">2025-12-16</td>
+      <td class="media-name"><a href="https://www.movieguide.org/movieguide-moms/holiday-gift-guide-everything-we-know-about-the-nex-playground.html" target="_blank">Movieguide Moms</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.movieguide.org/movieguide-moms/holiday-gift-guide-everything-we-know-about-the-nex-playground.html" target="_blank">Holiday Gift Guide: Everything We Know About the Nex Playground</a></span></td>
+      <td class="link-cell">
+        <a class="amz-link" href="https://amzn.to/3XXA0J6" target="_blank">amzn.to/3XXA0J6</a>
+      </td>
+      <td><span class="tag-pill">mgprime-20</span></td>
+      <td class="note">⚠️ 链接指向 ASIN B0F5W7BQ2G（疑为套装版），非 B0D2JGYX3F；另含 tag=mgwatch-20 的 Amazon Watch 链接</td>
+    </tr>
+
+    <!-- 8 -->
+    <tr data-type="礼品导购" data-tag="yes">
+      <td>8</td>
+      <td class="date">2024-10-18</td>
+      <td class="media-name"><a href="https://www.purewow.com/tech/nex-playground-review" target="_blank">PureWow</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.purewow.com/tech/nex-playground-review" target="_blank">The Nex Playground Is Keeping Our Family Sane This Summer—And It's on Major Sale for Amazon Prime Day</a></span></td>
+      <td class="link-cell">
+        <a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F?tag=primeday20230d-20" target="_blank">amazon.com/dp/B0D2JGYX3F?<br>tag=primeday20230d-20</a>
+      </td>
+      <td><span class="tag-pill">primeday20230d-20</span></td>
+      <td class="note">首发 2024-10-18；更新于 2025-07-08（Prime Day 促销）；全文多处使用同一 tag</td>
+    </tr>
+
+    <!-- 9 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>9</td>
+      <td class="date">2025-12-17</td>
+      <td class="media-name"><a href="https://www.techradar.com/gaming/nex-playground-review" target="_blank">TechRadar</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.techradar.com/gaming/nex-playground-review" target="_blank">Nex Playground review: a cheaper console option for all the family</a></span></td>
+      <td class="link-cell"><span class="no-link">JS 渲染页，无法抓取正文</span></td>
+      <td><span class="no-tag">未提取（Future plc 通常用 Hawk 平台）</span></td>
+      <td class="note">页面披露含联盟佣金；Future plc 旗下媒体通常通过 Hawk 联盟平台跳转</td>
+    </tr>
+
+    <!-- 10 -->
+    <tr data-type="科技媒体" data-tag="yes">
+      <td>10</td>
+      <td class="date">2026-01-11</td>
+      <td class="media-name"><a href="https://www.xda-developers.com/nex-playground-hands-on/" target="_blank">XDA Developers</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.xda-developers.com/nex-playground-hands-on/" target="_blank">I tried the Nex Playground and I understand why it outsells Xbox</a></span></td>
+      <td class="link-cell">
+        <a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F?tag=xdadev04-20" target="_blank">amazon.com/dp/B0D2JGYX3F?<br>tag=xdadev04-20</a>
+      </td>
+      <td><span class="tag-pill">xdadev04-20</span></td>
+      <td class="note">含额外追踪参数：ascsubtag=UUxdaUeUpU1027013, asc_campaign=Authority；标题称"销量超过 Xbox"</td>
+    </tr>
+
+    <!-- 11 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>11</td>
+      <td class="date">2025-12-12</td>
+      <td class="media-name"><a href="https://inanage.com/2025/12/12/review-nex-playground/" target="_blank">In An Age</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://inanage.com/2025/12/12/review-nex-playground/" target="_blank">Review: Nex Playground</a></span></td>
+      <td class="link-cell"><span class="no-link">无联盟链接</span></td>
+      <td><span class="no-tag">—</span></td>
+      <td class="note">提及 Amazon 购买及套装定价（$288），但无可点击联盟链接</td>
+    </tr>
+
+    <!-- 12 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>12</td>
+      <td class="date">2025-05-02</td>
+      <td class="media-name"><a href="https://www.gamingnexus.com/Article/15213/Nex-Playground" target="_blank">Gaming Nexus</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.gamingnexus.com/Article/15213/Nex-Playground" target="_blank">Nex Playground Review</a></span></td>
+      <td class="link-cell"><span class="no-link">无联盟链接</span></td>
+      <td><span class="no-tag">—</span></td>
+      <td class="note">页面可访问，未发现 Amazon 联盟链接</td>
+    </tr>
+
+    <!-- 13 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>13</td>
+      <td class="date">—</td>
+      <td class="media-name"><a href="https://www.cubbyathome.com/nex-playground-video-game-review-80042169" target="_blank">Cubby at Home</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.cubbyathome.com/nex-playground-video-game-review-80042169" target="_blank">Nex Playground Video Game Review</a></span></td>
+      <td class="link-cell"><span class="no-link status-err">HTTP 403 – 无法访问</span></td>
+      <td><span class="no-tag">—</span></td>
+      <td class="note">403 Forbidden，所有请求均失败，日期未知</td>
+    </tr>
+
+    <!-- 14 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>14</td>
+      <td class="date">2026-04-25</td>
+      <td class="media-name"><a href="https://medium.com/design-bootcamp/the-console-nobody-expected-how-nex-playground-quietly-built-a-150m-business-17d3b6719b1b" target="_blank">Medium / Design Bootcamp</a></td>
+      <td><span class="badge badge-business">商业分析</span></td>
+      <td class="title"><span class="title-text"><a href="https://medium.com/design-bootcamp/the-console-nobody-expected-how-nex-playground-quietly-built-a-150m-business-17d3b6719b1b" target="_blank">The Console Nobody Expected: How Nex Playground Quietly Built a $150M Business</a></span></td>
+      <td class="link-cell"><span class="no-link">商业分析文，无联盟链接</span></td>
+      <td><span class="no-tag">—</span></td>
+      <td class="note">2023: 5,000台 → 2024: 150,000台 → 2025: 600,000+台，营收 $150M+；讨论反定位战略</td>
+    </tr>
+
+    <!-- 15 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>15</td>
+      <td class="date">2026-01-26</td>
+      <td class="media-name"><a href="https://variety.com/2026/gaming/news/what-is-nex-playground-bluey-game-partnership-1236638557/" target="_blank">Variety</a></td>
+      <td><span class="badge badge-news">娱乐媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://variety.com/2026/gaming/news/what-is-nex-playground-bluey-game-partnership-1236638557/" target="_blank">What Is Nex Playground? CEO on Bluey Game Partnership, More</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道，无联盟链接</span></td>
+      <td><span class="no-tag">—</span></td>
+      <td class="note">CES 2026 CEO David Lee 专访；650,000+ 台；合作方：Bluey、Hasbro、芝麻街、NBCUniversal</td>
+    </tr>
+
+    <!-- 16 -->
+    <tr data-type="新闻发布" data-tag="no">
+      <td>16</td>
+      <td class="date">2026-03-09</td>
+      <td class="media-name"><a href="https://www.businesswire.com/news/home/20260309475466/en/Nex-Playground-Set-to-Exceed-One-Million-Lifetime-Units-Sold" target="_blank">BusinessWire</a></td>
+      <td><span class="badge badge-press">新闻发布</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.businesswire.com/news/home/20260309475466/en/Nex-Playground-Set-to-Exceed-One-Million-Lifetime-Units-Sold" target="_blank">Nex Playground Set to Exceed One Million Lifetime Units Sold This Month</a></span></td>
+      <td class="link-cell"><span class="no-link">官方 PR，无联盟链接</span></td>
+      <td><span class="no-tag">—</span></td>
+      <td class="note">GDC 发布；春季新游：Avatar（4/15）、Dora、Dude Perfect；英欧即将上市</td>
+    </tr>
+
+    <!-- 17 -->
+    <tr data-type="新闻发布" data-tag="no">
+      <td>17</td>
+      <td class="date">2026-01-05</td>
+      <td class="media-name"><a href="https://www.businesswire.com/news/home/20260105396416/en/Nex-Playground-Showcases-Future-of-Active-Play-at-CES" target="_blank">BusinessWire</a></td>
+      <td><span class="badge badge-press">新闻发布</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.businesswire.com/news/home/20260105396416/en/Nex-Playground-Showcases-Future-of-Active-Play-at-CES" target="_blank">Nex Playground Showcases Future of Active Play at CES 2026</a></span></td>
+      <td class="link-cell"><span class="no-link">官方 PR，无联盟链接</span></td>
+      <td><span class="no-tag">—</span></td>
+      <td class="note">CES 2026（The Venetian）；2026 路线图：NBA、NHL、Dude Perfect、Connected Playdate；春季进军英欧</td>
+    </tr>
+
+    <!-- 18 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>18</td>
+      <td class="date">—</td>
+      <td class="media-name"><a href="https://tvreviewland.com/nex-playground-review-the-surprisingly-fun-active-gaming-system-your-family-will-love/" target="_blank">TVReviewLand</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://tvreviewland.com/nex-playground-review-the-surprisingly-fun-active-gaming-system-your-family-will-love/" target="_blank">Nex Playground Review: The Surprisingly Fun Active Gaming System Your Family Will Love</a></span></td>
+      <td class="link-cell"><span class="no-link status-err">HTTP 436 – 无法访问</span></td>
+      <td><span class="no-tag">—</span></td>
+      <td class="note">披露信息确认为 Amazon Associates Program 成员；日期未知</td>
+    </tr>
+
+    <!-- 19 -->
+    <tr data-type="视频" data-tag="no">
+      <td>19</td>
+      <td class="date">—</td>
+      <td class="media-name"><a href="https://www.amazon.com/live/video/0ac0de7c290d40909bf0a3131aa7b29d" target="_blank">Amazon Live</a></td>
+      <td><span class="badge badge-video">Amazon Live</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.amazon.com/live/video/0ac0de7c290d40909bf0a3131aa7b29d" target="_blank">My honest review of the Nex Playground!</a></span></td>
+      <td class="link-cell">
+        <a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank">amazon.com/dp/B0D2JGYX3F</a>
+      </td>
+      <td><span class="no-tag">Amazon Live 内置佣金</span></td>
+      <td class="note">Amazon Live 创作者视频；产品直链；平台内置佣金机制</td>
+    </tr>
+
+    <!-- 20 -->
+    <tr data-type="视频" data-tag="no">
+      <td>20</td>
+      <td class="date">—</td>
+      <td class="media-name"><a href="https://www.amazon.com/live/video/0642271259644678945c08d326958925" target="_blank">Amazon Live</a></td>
+      <td><span class="badge badge-video">Amazon Live</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.amazon.com/live/video/0642271259644678945c08d326958925" target="_blank">Nex Playground Review, Is it worth it for kids and families?</a></span></td>
+      <td class="link-cell">
+        <a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank">amazon.com/dp/B0D2JGYX3F</a>
+      </td>
+      <td><span class="no-tag">Amazon Live 内置佣金</span></td>
+      <td class="note">创作者 Taylor Smith；Amazon Live 内置佣金机制</td>
+    </tr>
+
+    <!-- 21 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>21</td>
+      <td class="date">2025-09-04</td>
+      <td class="media-name"><a href="https://variety.com/2025/gaming/news/bluey-video-game-october-nex-playground-1236506803/" target="_blank">Variety</a></td>
+      <td><span class="badge badge-news">娱乐媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://variety.com/2025/gaming/news/bluey-video-game-october-nex-playground-1236506803/" target="_blank">Bluey Video Game to Launch in October on Nex Playground</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道，无联盟链接</span></td>
+      <td><span class="no-tag">—</span></td>
+      <td class="note">Bluey: Bust-a-Move 由 Ludo Studio + BBC Studios + Nex 联合出品；2025-10 随 Play Pass 上线</td>
+    </tr>
+
+    <!-- 22 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>22</td>
+      <td class="date">2026-01-01</td>
+      <td class="media-name"><a href="https://www.4scarrsgaming.com/2026/01/nex-playground-2026-roadmap-connected-playdate-ces-2026.html" target="_blank">4Scarrs Gaming</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.4scarrsgaming.com/2026/01/nex-playground-2026-roadmap-connected-playdate-ces-2026.html" target="_blank">Nex Playground Shares Its 2026 Roadmap and Connected Playdate Feature at CES 2026</a></span></td>
+      <td class="link-cell"><span class="no-link">无联盟链接</span></td>
+      <td><span class="no-tag">—</span></td>
+      <td class="note">游戏博客报道 CES 2026 发布内容</td>
+    </tr>
+
+
+    <!-- ===== 科技媒体 ===== -->
+    <!-- 23 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>23</td><td class="date">2024-10-18</td>
+      <td class="media-name"><a href="https://www.engadget.com/gaming/the-nex-playground-is-everything-xbox-kinect-wanted-to-be-133000397.html" target="_blank">Engadget</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.engadget.com/gaming/the-nex-playground-is-everything-xbox-kinect-wanted-to-be-133000397.html" target="_blank">The Nex Playground is everything Xbox Kinect wanted to be</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Engadget 主评测，将其定位为 Xbox Kinect 精神继承者</td>
+    </tr>
+    <!-- 24 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>24</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.engadget.com/social-media/engadget-podcast-why-is-the-nex-playground-ai-console-such-a-hit-181151201.html" target="_blank">Engadget</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.engadget.com/social-media/engadget-podcast-why-is-the-nex-playground-ai-console-such-a-hit-181151201.html" target="_blank">Engadget Podcast: Why is the Nex Playground 'AI console' such a hit?</a></span></td>
+      <td class="link-cell"><span class="no-link">播客</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">播客专题讨论 Nex Playground 爆火原因</td>
+    </tr>
+    <!-- 25 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>25</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.engadget.com/general/the-morning-after-the-nex-playground-channels-the-spirit-of-xboxs-kinect-121500965.html" target="_blank">Engadget</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.engadget.com/general/the-morning-after-the-nex-playground-channels-the-spirit-of-xboxs-kinect-121500965.html" target="_blank">The Morning After: The Nex Playground channels the spirit of Xbox's Kinect</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻简报</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Engadget 每日简报专题</td>
+    </tr>
+    <!-- 26 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>26</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.engadget.com/engadget-review-recap-shokz-openfit-pro-nex-playground-sony-a7-v-and-more-123400089.html" target="_blank">Engadget</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.engadget.com/engadget-review-recap-shokz-openfit-pro-nex-playground-sony-a7-v-and-more-123400089.html" target="_blank">Engadget review recap: Shokz OpenFit Pro, Nex Playground, Sony A7 V and more</a></span></td>
+      <td class="link-cell"><span class="no-link">评测合集</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Engadget 周度评测合集</td>
+    </tr>
+    <!-- 27 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>27</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://www.windowscentral.com/gaming/a-kinect-style-console-outsold-xbox-and-nexs-ceo-breaks-down-the-strategy-that-made-it-a-surprise-hit-nintendo-expanded-the-audience" target="_blank">Windows Central</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.windowscentral.com/gaming/a-kinect-style-console-outsold-xbox-and-nexs-ceo-breaks-down-the-strategy-that-made-it-a-surprise-hit-nintendo-expanded-the-audience" target="_blank">A Kinect-style console outsold Xbox, and Nex's CEO breaks down the strategy</a></span></td>
+      <td class="link-cell"><span class="no-link">报道/专访</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">CEO 策略专访，讨论超越 Xbox 的原因</td>
+    </tr>
+    <!-- 28 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>28</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://www.windowscentral.com/gaming/the-game-system-that-outsold-xbox-over-black-friday-now-has-a-special-early-christmas-discount-and-its-cheaper-than-the-nintendo-switch-2" target="_blank">Windows Central</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.windowscentral.com/gaming/the-game-system-that-outsold-xbox-over-black-friday-now-has-a-special-early-christmas-discount-and-its-cheaper-than-the-nintendo-switch-2" target="_blank">The Nex Playground console is on sale — cheaper than Nintendo Switch 2</a></span></td>
+      <td class="link-cell"><span class="no-link">促销文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">圣诞折扣报道，对比 Nintendo Switch 2 定价</td>
+    </tr>
+    <!-- 29 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>29</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://www.shacknews.com/article/147383/nex-playground-2025-success-ces-2026-preview" target="_blank">Shacknews</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.shacknews.com/article/147383/nex-playground-2025-success-ces-2026-preview" target="_blank">How Nex Playground is riding Wii nostalgia and child safety to success</a></span></td>
+      <td class="link-cell"><span class="no-link">分析报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">分析 Wii 怀旧情绪 + 儿童安全定位的成功逻辑</td>
+    </tr>
+    <!-- 30 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>30</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://www.gamespot.com/articles/kinects-revenge-nex-playground-outsells-xbox-hardware-in-the-us/1100-6537053/" target="_blank">GameSpot</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.gamespot.com/articles/kinects-revenge-nex-playground-outsells-xbox-hardware-in-the-us/1100-6537053/" target="_blank">Kinect's Revenge: Nex Playground Outsells Xbox Hardware In The US</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">黑色星期五 Nex 超过 Xbox 销量的标志性报道</td>
+    </tr>
+    <!-- 31 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>31</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.gamespot.com/articles/nex-playground-game-console-deal-holiday-2025/1100-6527044/" target="_blank">GameSpot</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.gamespot.com/articles/nex-playground-game-console-deal-holiday-2025/1100-6527044/" target="_blank">Nex Playground Restocked With Limited-Time Discount At Amazon</a></span></td>
+      <td class="link-cell"><span class="no-link">促销文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">假日季 Amazon 限时折扣报道</td>
+    </tr>
+    <!-- 32 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>32</td><td class="date">2026-01-30</td>
+      <td class="media-name"><a href="https://the-gadgeteer.com/2026/01/30/this-249-nex-playground-motion-gaming-startup-outsold-xbox/" target="_blank">The Gadgeteer</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://the-gadgeteer.com/2026/01/30/this-249-nex-playground-motion-gaming-startup-outsold-xbox/" target="_blank">This $249 Nex Playground Motion Gaming Console Outsold Xbox</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">聚焦销量超 Xbox 的里程碑报道</td>
+    </tr>
+    <!-- 33 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>33</td><td class="date">2025-07-17</td>
+      <td class="media-name"><a href="https://the-gadgeteer.com/2025/07/17/nex-playground-play-interactive-games-with-your-kids/" target="_blank">The Gadgeteer</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://the-gadgeteer.com/2025/07/17/nex-playground-play-interactive-games-with-your-kids/" target="_blank">Nex Playground - Play interactive games with your kids</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">The Gadgeteer 早期产品评测</td>
+    </tr>
+    <!-- 34 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>34</td><td class="date">2025-12-08</td>
+      <td class="media-name"><a href="https://thisweekinvideogames.com/news/xbox-hardware-outsold-by-motion-controlled-nex-playground-during-black-friday/" target="_blank">This Week in Videogames</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://thisweekinvideogames.com/news/xbox-hardware-outsold-by-motion-controlled-nex-playground-during-black-friday/" target="_blank">Xbox Hardware Outsold by Motion Controlled Nex Playground During Black Friday Sales</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">黑色星期五销量超 Xbox 的游戏媒体报道</td>
+    </tr>
+    <!-- 35 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>35</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://www.tweaktown.com/news/109244/ps5-tops-black-friday-console-sales-while-xbox-was-outsold-by-the-nex-playground/index.html" target="_blank">Tweaktown</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.tweaktown.com/news/109244/ps5-tops-black-friday-console-sales-while-xbox-was-outsold-by-the-nex-playground/index.html" target="_blank">PS5 tops Black Friday console sales while Xbox was outsold by the NEX Playground</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">黑色星期五主机销量排名分析</td>
+    </tr>
+    <!-- 36 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>36</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://www.flatpanelshd.com/news.php?subaction=showfull&id=1765435984" target="_blank">FlatpanelsHD</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.flatpanelshd.com/news.php?subaction=showfull&id=1765435984" target="_blank">Little-known game console outsells Xbox</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">欧洲视听媒体报道 Nex 超 Xbox 里程碑</td>
+    </tr>
+    <!-- 37 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>37</td><td class="date">2026-03-09</td>
+      <td class="media-name"><a href="https://www.iphoneincanada.ca/2026/03/09/nex-playground-set-to-hit-1-million-sales-as-new-avatar-and-dora-games-arrive/" target="_blank">iPhone in Canada</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.iphoneincanada.ca/2026/03/09/nex-playground-set-to-hit-1-million-sales-as-new-avatar-and-dora-games-arrive/" target="_blank">Nex Playground Set to Hit 1 Million Sales as New Avatar and Dora Games Arrive</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">加拿大科技媒体报道百万销量里程碑</td>
+    </tr>
+    <!-- 38 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>38</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.tomsguide.com/gaming/this-gadget-is-like-a-wii-without-the-controllers-and-my-kid-loves-it" target="_blank">Tom's Guide</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.tomsguide.com/gaming/this-gadget-is-like-a-wii-without-the-controllers-and-my-kid-loves-it" target="_blank">This gadget is like a Wii without the controllers — and my kid loves it</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">类比 Wii 的亲子评测，有 Amazon 联盟链接概率高</td>
+    </tr>
+    <!-- 39 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>39</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.androidpolice.com/nex-playground-game-system-review/" target="_blank">Android Police</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.androidpolice.com/nex-playground-game-system-review/" target="_blank">The Nex Playground Game System is a rainy-day lifesaver for parents</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Android Police 深度评测，Valnet 旗下媒体含联盟链接</td>
+    </tr>
+    <!-- 40 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>40</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://tech.yahoo.com/gaming/review/nex-playground-review-this-simple-system-levels-up-game-night-and-gets-kids-off-the-couch-162749993.html" target="_blank">Yahoo Tech</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://tech.yahoo.com/gaming/review/nex-playground-review-this-simple-system-levels-up-game-night-and-gets-kids-off-the-couch-162749993.html" target="_blank">Nex Playground review: This simple system levels up game night and gets kids off the couch</a></span></td>
+      <td class="link-cell"><span class="no-link">转载评测</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Yahoo Tech 转载（原文来自 Android Police）</td>
+    </tr>
+    <!-- 41 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>41</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.slashgear.com/1508454/nex-playground-review-living-room-android-console-gaming-vr-play/" target="_blank">SlashGear</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.slashgear.com/1508454/nex-playground-review-living-room-android-console-gaming-vr-play/" target="_blank">Nex Playground Review: Living Room Gaming's Future Meets Its Past</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">SlashGear 深度评测，Static Media 旗下含联盟链接</td>
+    </tr>
+    <!-- 42 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>42</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://venturebeat.com/games/fruit-ninja-debuts-on-nex-playground-motion-gaming-console/" target="_blank">VentureBeat / GamesBeat</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://venturebeat.com/games/fruit-ninja-debuts-on-nex-playground-motion-gaming-console/" target="_blank">Fruit Ninja debuts on Nex Playground motion-gaming console</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏行业新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Fruit Ninja 登陆 Nex Playground 的行业新闻</td>
+    </tr>
+    <!-- 43 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>43</td><td class="date">2021-09-21</td>
+      <td class="media-name"><a href="https://techcrunch.com/2021/09/21/nex-a-motion-based-entertainment-company-announces-25b-series-b-round-and-its-motion-game-app-active-arcade-launch/" target="_blank">TechCrunch</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://techcrunch.com/2021/09/21/nex-a-motion-based-entertainment-company-announces-25b-series-b-round-and-its-motion-game-app-active-arcade-launch/" target="_blank">NEX raises $25M Series B, launches Active Arcade</a></span></td>
+      <td class="link-cell"><span class="no-link">融资新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">公司背景：B 轮 $25M 融资报道，Active Arcade 前身时期</td>
+    </tr>
+    <!-- 44 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>44</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.creativebloq.com/3d/video-game-design/youve-never-heard-of-nex-playground-but-its-one-of-the-most-interestingly-designed-games-consoles-out-there" target="_blank">Creative Bloq</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.creativebloq.com/3d/video-game-design/youve-never-heard-of-nex-playground-but-its-one-of-the-most-interestingly-designed-games-consoles-out-there" target="_blank">You've never heard of Nex Playground, but it's one of the most interestingly designed games consoles out there</a></span></td>
+      <td class="link-cell"><span class="no-link">产品设计分析</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Future plc 旗下设计媒体，聚焦产品设计角度</td>
+    </tr>
+    <!-- 45 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>45</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.creativebloq.com/entertainment/gaming/nex-playground-for-usd199-is-a-genuine-limited-time-deal" target="_blank">Creative Bloq</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.creativebloq.com/entertainment/gaming/nex-playground-for-usd199-is-a-genuine-limited-time-deal" target="_blank">Nex Playground for $199 is a genuine limited-time deal</a></span></td>
+      <td class="link-cell"><span class="no-link">促销文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Future plc Hawk 联盟平台，$199 限时特价报道</td>
+    </tr>
+    <!-- 46 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>46</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.creativebloq.com/entertainment/gaming/nex-playground-hits-lowest-price-yet-after-black-friday-sellout" target="_blank">Creative Bloq</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.creativebloq.com/entertainment/gaming/nex-playground-hits-lowest-price-yet-after-black-friday-sellout" target="_blank">Nex Playground hits lowest price yet after Black Friday sellout</a></span></td>
+      <td class="link-cell"><span class="no-link">促销文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">黑色星期五售罄后 Prime Day 历史最低价报道</td>
+    </tr>
+    <!-- 47 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>47</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.creativebloq.com/entertainment/gaming/the-nex-playground-gaming-console-is-back-to-its-record-low-price-of-usd199-get-it-for-new-year-fun" target="_blank">Creative Bloq</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.creativebloq.com/entertainment/gaming/the-nex-playground-gaming-console-is-back-to-its-record-low-price-of-usd199-get-it-for-new-year-fun" target="_blank">Nex Playground gaming console back to record low $199 for New Year</a></span></td>
+      <td class="link-cell"><span class="no-link">促销文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">新年促销历史低价报道</td>
+    </tr>
+    <!-- 48 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>48</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://cybernews.com/reviews/nex-playground-black-friday/" target="_blank">Cybernews</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://cybernews.com/reviews/nex-playground-black-friday/" target="_blank">Nex Playground Black Friday: Save 20% in 2025</a></span></td>
+      <td class="link-cell"><span class="no-link">促销文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">黑色星期五 20% 折扣专题</td>
+    </tr>
+    <!-- 49 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>49</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://cybernews.com/deals/nex-playground-black-friday-deals-go-live/" target="_blank">Cybernews</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://cybernews.com/deals/nex-playground-black-friday-deals-go-live/" target="_blank">Nex Playground launches Black Friday deals on its motion-tracking system</a></span></td>
+      <td class="link-cell"><span class="no-link">促销文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">黑色星期五活动上线报道</td>
+    </tr>
+    <!-- 50 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>50</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://respawn.outlookindia.com/gaming/gaming-news/xbox-falls-behind-nex-playground-as-motion-gaming-makes-a-comeback" target="_blank">Outlook India (Respawn)</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://respawn.outlookindia.com/gaming/gaming-news/xbox-falls-behind-nex-playground-as-motion-gaming-makes-a-comeback" target="_blank">Xbox Falls Behind Nex Playground as Motion Gaming Makes a Comeback</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">印度主流媒体 Outlook 游戏频道，体感游戏复兴分析</td>
+    </tr>
+
+    <!-- ===== ResetEra 社区 ===== -->
+    <!-- 51 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>51</td><td class="date">2026-04</td>
+      <td class="media-name"><a href="https://www.resetera.com/threads/nex-playground-price-increasing-to-299-up-from-249.1473376/" target="_blank">ResetEra</a></td>
+      <td><span class="badge badge-gaming">游戏论坛</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.resetera.com/threads/nex-playground-price-increasing-to-299-up-from-249.1473376/" target="_blank">Nex Playground Price Increasing to $299 (up from $249)</a></span></td>
+      <td class="link-cell"><span class="no-link">社区讨论</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">涨价讨论帖，反映用户对 $299 新价格的反应</td>
+    </tr>
+    <!-- 52 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>52</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://www.resetera.com/threads/nex-playground-600k-units-sold-in-2025-4x-increase-yoy-famous-game-dev-studios-interested-releases-2026-in-more-countries-the-game-business.1392265/" target="_blank">ResetEra</a></td>
+      <td><span class="badge badge-gaming">游戏论坛</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.resetera.com/threads/nex-playground-600k-units-sold-in-2025-4x-increase-yoy-famous-game-dev-studios-interested-releases-2026-in-more-countries-the-game-business.1392265/" target="_blank">Nex Playground: 600k units sold in 2025 (4x increase yoy)</a></span></td>
+      <td class="link-cell"><span class="no-link">社区讨论</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">核心玩家社区对 600k 销量数据的讨论与反应</td>
+    </tr>
+    <!-- 53 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>53</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://www.resetera.com/threads/does-the-popularity-of-the-nex-playground-prove-there-was-an-audience-for-a-switch-home-tv.1407658/" target="_blank">ResetEra</a></td>
+      <td><span class="badge badge-gaming">游戏论坛</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.resetera.com/threads/does-the-popularity-of-the-nex-playground-prove-there-was-an-audience-for-a-switch-home-tv.1407658/" target="_blank">Does the popularity of Nex Playground prove there was an audience for a Switch Home/TV?</a></span></td>
+      <td class="link-cell"><span class="no-link">社区讨论</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">与 Nintendo Switch TV 模式需求的类比讨论</td>
+    </tr>
+    <!-- 54 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>54</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.resetera.com/threads/thegamebusiness-nex-playground-ceo-interview.1387120/" target="_blank">ResetEra</a></td>
+      <td><span class="badge badge-gaming">游戏论坛</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.resetera.com/threads/thegamebusiness-nex-playground-ceo-interview.1387120/" target="_blank">[thegamebusiness] Nex Playground CEO interview</a></span></td>
+      <td class="link-cell"><span class="no-link">社区讨论</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">CEO 专访的 ResetEra 社区讨论帖</td>
+    </tr>
+    <!-- 55 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>55</td><td class="date">2023</td>
+      <td class="media-name"><a href="https://www.resetera.com/threads/nex-playground-kinect-reborn.1184286/" target="_blank">ResetEra</a></td>
+      <td><span class="badge badge-gaming">游戏论坛</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.resetera.com/threads/nex-playground-kinect-reborn.1184286/" target="_blank">Nex Playground: Kinect reborn?</a></span></td>
+      <td class="link-cell"><span class="no-link">社区讨论</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">早期社区讨论，将其定位为 Kinect 的继承者</td>
+    </tr>
+    <!-- 56 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>56</td><td class="date">2026-04</td>
+      <td class="media-name"><a href="https://www.installbaseforum.com/forums/threads/nex-playground-price-to-increase-to-299-starting-april-1.4489/" target="_blank">Install Base Forum</a></td>
+      <td><span class="badge badge-gaming">游戏论坛</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.installbaseforum.com/forums/threads/nex-playground-price-to-increase-to-299-starting-april-1.4489/" target="_blank">Nex Playground price to increase to $299 starting April 1</a></span></td>
+      <td class="link-cell"><span class="no-link">社区讨论</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">销量追踪社区的涨价讨论</td>
+    </tr>
+    <!-- 57 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>57</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://www.installbaseforum.com/forums/threads/nex-playground-650-000-in-2025-launching-in-europe-throughout-2026.4224/" target="_blank">Install Base Forum</a></td>
+      <td><span class="badge badge-gaming">游戏论坛</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.installbaseforum.com/forums/threads/nex-playground-650-000-in-2025-launching-in-europe-throughout-2026.4224/" target="_blank">Nex Playground (>650,000 in 2025, launching in Europe throughout 2026)</a></span></td>
+      <td class="link-cell"><span class="no-link">销量追踪</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Install Base 核心销量追踪帖，持续更新数据</td>
+    </tr>
+    <!-- 58 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>58</td><td class="date">2026-03-01</td>
+      <td class="media-name"><a href="https://www.cgmagonline.com/review/hardware/nex-playground-console/" target="_blank">CGMagazine</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.cgmagonline.com/review/hardware/nex-playground-console/" target="_blank">Nex Playground Console Review</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">加拿大游戏媒体 CGMagazine 深度硬件评测</td>
+    </tr>
+    <!-- 59 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>59</td><td class="date">2023-08-08</td>
+      <td class="media-name"><a href="https://www.cgmagonline.com/news/nex-playground-motion-based-gaming/" target="_blank">CGMagazine</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.cgmagonline.com/news/nex-playground-motion-based-gaming/" target="_blank">Nex Playground: Motion-Based Gaming & AR, Order Now!</a></span></td>
+      <td class="link-cell"><span class="no-link">早期报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">2023 年早期产品上市报道</td>
+    </tr>
+    <!-- 60 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>60</td><td class="date">2026-03</td>
+      <td class="media-name"><a href="https://www.4scarrsgaming.com/2026/03/nex-playground-new-games-spring-2026-lineup.html" target="_blank">4Scarrs Gaming</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.4scarrsgaming.com/2026/03/nex-playground-new-games-spring-2026-lineup.html" target="_blank">Nex Playground New Games Join Spring 2026 Lineup Ahead of GDC</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">春季 2026 新游戏阵容报道</td>
+    </tr>
+
+    <!-- ===== 新闻发布（补充）===== -->
+    <!-- 61 -->
+    <tr data-type="新闻发布" data-tag="no">
+      <td>61</td><td class="date">2024-09-18</td>
+      <td class="media-name"><a href="https://www.businesswire.com/news/home/20240918867673/en/Nex-Playground-Active-Gaming-Console-Announces-Nationwide-Retail-Launch-at-Target-Best-Buy-and-Walmart-for-the-Holidays" target="_blank">BusinessWire</a></td>
+      <td><span class="badge badge-press">新闻发布</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.businesswire.com/news/home/20240918867673/en/Nex-Playground-Active-Gaming-Console-Announces-Nationwide-Retail-Launch-at-Target-Best-Buy-and-Walmart-for-the-Holidays" target="_blank">Nex Playground Announces Nationwide Retail Launch at Target, Best Buy and Walmart for the Holidays</a></span></td>
+      <td class="link-cell"><span class="no-link">官方 PR</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">全国零售上市公告（Target、Best Buy、Walmart）——关键里程碑</td>
+    </tr>
+    <!-- 62 -->
+    <tr data-type="新闻发布" data-tag="no">
+      <td>62</td><td class="date">2025-09-04</td>
+      <td class="media-name"><a href="https://www.businesswire.com/news/home/20250904116909/en/Get-Active-With-Bluey-Nex-and-BBC-Studios-Turn-Screen-Time-Into-Active-Play-Time" target="_blank">BusinessWire</a></td>
+      <td><span class="badge badge-press">新闻发布</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.businesswire.com/news/home/20250904116909/en/Get-Active-With-Bluey-Nex-and-BBC-Studios-Turn-Screen-Time-Into-Active-Play-Time" target="_blank">Get Active With Bluey: Nex and BBC Studios Turn Screen Time Into Active Play Time</a></span></td>
+      <td class="link-cell"><span class="no-link">官方 PR</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Bluey × Nex × BBC Studios 合作公告</td>
+    </tr>
+    <!-- 63 -->
+    <tr data-type="新闻发布" data-tag="no">
+      <td>63</td><td class="date">2025-10-07</td>
+      <td class="media-name"><a href="https://www.businesswire.com/news/home/20251007774093/en/Bluey-Bust-a-Move-Bounces-Onto-Nex-Playground-Today" target="_blank">BusinessWire</a></td>
+      <td><span class="badge badge-press">新闻发布</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.businesswire.com/news/home/20251007774093/en/Bluey-Bust-a-Move-Bounces-Onto-Nex-Playground-Today" target="_blank">Bluey: Bust-a-Move Bounces Onto Nex Playground Today</a></span></td>
+      <td class="link-cell"><span class="no-link">官方 PR</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Bluey: Bust-a-Move 正式上线公告</td>
+    </tr>
+    <!-- 64 -->
+    <tr data-type="新闻发布" data-tag="no">
+      <td>64</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://newsroom.hasbro.com/news-releases/news-release-details/nex-and-hasbro-expand-collaboration-transform-beloved-family" target="_blank">Hasbro Newsroom</a></td>
+      <td><span class="badge badge-press">新闻发布</span></td>
+      <td class="title"><span class="title-text"><a href="https://newsroom.hasbro.com/news-releases/news-release-details/nex-and-hasbro-expand-collaboration-transform-beloved-family" target="_blank">NEX and Hasbro Expand Collaboration to Transform Beloved Family Board Games into Active Play Experiences</a></span></td>
+      <td class="link-cell"><span class="no-link">官方 PR</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Hasbro 官方新闻室发布，深化合作将桌游转为体感游戏</td>
+    </tr>
+
+    <!-- ===== 商业媒体 ===== -->
+    <!-- 65 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>65</td><td class="date">2026-01-05</td>
+      <td class="media-name"><a href="https://finance.yahoo.com/news/nex-playground-showcases-future-active-140000918.html" target="_blank">Yahoo Finance</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://finance.yahoo.com/news/nex-playground-showcases-future-active-140000918.html" target="_blank">Nex Playground Showcases Future of Active Play at CES 2026</a></span></td>
+      <td class="link-cell"><span class="no-link">PR 转载</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">BusinessWire 新闻的 Yahoo Finance 同步转载</td>
+    </tr>
+    <!-- 66 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>66</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://licensinginternational.org/news/nex-playground-unveils-2026-product-roadmap-at-ces/" target="_blank">Licensing International</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://licensinginternational.org/news/nex-playground-unveils-2026-product-roadmap-at-ces/" target="_blank">Nex Playground Unveils 2026 Product Roadmap at CES</a></span></td>
+      <td class="link-cell"><span class="no-link">行业新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">授权行业协会媒体报道，关注 IP 授权合作层面</td>
+    </tr>
+    <!-- 67 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>67</td><td class="date">2026-01-05</td>
+      <td class="media-name"><a href="https://www.cityam.com/nex-playground-showcases-future-of-active-play-at-ces-and-an-early-first-look-at-its-2026-product-roadmap/" target="_blank">City A.M.</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.cityam.com/nex-playground-showcases-future-of-active-play-at-ces-and-an-early-first-look-at-its-2026-product-roadmap/" target="_blank">Nex Playground Showcases Future of Active Play at CES 2026</a></span></td>
+      <td class="link-cell"><span class="no-link">PR 转载</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">英国商业媒体 City A.M. 转载 CES 新闻</td>
+    </tr>
+    <!-- 68 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>68</td><td class="date">2026-01-05</td>
+      <td class="media-name"><a href="https://www.thecanadianpressnews.ca/businesswire_press_releases/nex-playground-showcases-future-of-active-play-at-ces-and-an-early-first-look-at/article_a3fe693b-c91f-5109-89e4-e8a4f79bf079.html" target="_blank">The Canadian Press News</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.thecanadianpressnews.ca/businesswire_press_releases/nex-playground-showcases-future-of-active-play-at-ces-and-an-early-first-look-at/article_a3fe693b-c91f-5109-89e4-e8a4f79bf079.html" target="_blank">Nex Playground Showcases Future of Active Play at CES 2026</a></span></td>
+      <td class="link-cell"><span class="no-link">PR 转载</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">加拿大通讯社 PR 转载，强化加拿大地区曝光</td>
+    </tr>
+    <!-- 69 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>69</td><td class="date">2023</td>
+      <td class="media-name"><a href="https://time.com/collection/best-inventions-2023/6327702/nex-playground/" target="_blank">TIME</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://time.com/collection/best-inventions-2023/6327702/nex-playground/" target="_blank">Nex Playground: The 200 Best Inventions of 2023</a></span></td>
+      <td class="link-cell"><span class="no-link">奖项认可</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">TIME 年度最佳发明入选，高权重背书</td>
+    </tr>
+    <!-- 70 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>70</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.fastcompany.com/section/nex-playground" target="_blank">Fast Company</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.fastcompany.com/section/nex-playground" target="_blank">Nex Playground — Fast Company coverage section</a></span></td>
+      <td class="link-cell"><span class="no-link">专题报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Fast Company 品牌专题聚合页，多篇报道</td>
+    </tr>
+    <!-- 71 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>71</td><td class="date">2023</td>
+      <td class="media-name"><a href="https://designawards.core77.com/Toys-Play/128053/Nex-Playground.html" target="_blank">Core77 Design Awards</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://designawards.core77.com/Toys-Play/128053/Nex-Playground.html" target="_blank">Nex Playground — Core77 Design Awards</a></span></td>
+      <td class="link-cell"><span class="no-link">设计奖项</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Core77 玩具与游戏类设计奖项，设计行业背书</td>
+    </tr>
+    <!-- 72 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>72</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://youthsportsbusinessreport.com/camera-based-gaming-console-nex-playground-sells-600000-units-in-2025-outsells-xbox-during-black-friday/" target="_blank">Youth Sports Business Report</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://youthsportsbusinessreport.com/camera-based-gaming-console-nex-playground-sells-600000-units-in-2025-outsells-xbox-during-black-friday/" target="_blank">Nex Playground Sells 600,000 Units in 2025, Outsells Xbox During Black Friday</a></span></td>
+      <td class="link-cell"><span class="no-link">行业报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">青少年体育行业专媒，关注活动游戏与体育市场融合</td>
+    </tr>
+    <!-- 73 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>73</td><td class="date">—</td>
+      <td class="media-name"><a href="https://en.wikipedia.org/wiki/Nex_Playground" target="_blank">Wikipedia</a></td>
+      <td><span class="badge badge-business">百科</span></td>
+      <td class="title"><span class="title-text"><a href="https://en.wikipedia.org/wiki/Nex_Playground" target="_blank">Nex Playground — Wikipedia</a></span></td>
+      <td class="link-cell"><span class="no-link">百科词条</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">已有独立维基百科词条，DA 极高，PR 价值显著</td>
+    </tr>
+    <!-- 74 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>74</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.licenseglobal.com/entertainment/nex-playground-unveils-new-holiday-game-lineup" target="_blank">License Global</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.licenseglobal.com/entertainment/nex-playground-unveils-new-holiday-game-lineup" target="_blank">Nex Playground Unveils New Holiday Game Lineup</a></span></td>
+      <td class="link-cell"><span class="no-link">行业报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">IP 授权行业专媒 License Global 报道假日游戏阵容</td>
+    </tr>
+
+    <!-- ===== 育儿博客（补充）===== -->
+    <!-- 75 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>75</td><td class="date">2024-09-11</td>
+      <td class="media-name"><a href="https://www.momdoesreviews.com/2024/09/11/nex-playground-is-an-active-play-system-for-kids-and-families-back2school24/" target="_blank">Mom Does Reviews</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.momdoesreviews.com/2024/09/11/nex-playground-is-an-active-play-system-for-kids-and-families-back2school24/" target="_blank">Nex Playground Is An Active Play System For Kids and Families #Back2School24</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">返校季专题，早期亲子评测</td>
+    </tr>
+    <!-- 76 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>76</td><td class="date">2024-11</td>
+      <td class="media-name"><a href="https://www.mommyfactor.net/2024/11/get-active-nex-playground-gaming-console.html" target="_blank">The Mommy Factor</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.mommyfactor.net/2024/11/get-active-nex-playground-gaming-console.html" target="_blank">Get Active with Nex Playground Gaming Console</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">育儿博客，假日季前评测</td>
+    </tr>
+    <!-- 77 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>77</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://goodmenproject.com/featured-content/meet-nex-playground-the-must-have-gift-for-active-families-xela/" target="_blank">The Good Men Project</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://goodmenproject.com/featured-content/meet-nex-playground-the-must-have-gift-for-active-families-xela/" target="_blank">Meet 'Nex Playground' | The Must-Have Gift for Active Families!</a></span></td>
+      <td class="link-cell"><span class="no-link">赞助内容</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">父亲/男性生活方式博客，赞助式内容营销</td>
+    </tr>
+    <!-- 78 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>78</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.familyfriendlygaming.com/Reviews/2024/Nex-Playground.html" target="_blank">Family Friendly Gaming</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.familyfriendlygaming.com/Reviews/2024/Nex-Playground.html" target="_blank">Nex Playground Review — Family Friendly Gaming</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">家庭友好型游戏专媒评测</td>
+    </tr>
+    <!-- 79 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>79</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://fathomjournal.org/743e9558smm/1b29f35d-Bg2Ncsp6w-A.html" target="_blank">Fathom Journal</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://fathomjournal.org/743e9558smm/1b29f35d-Bg2Ncsp6w-A.html" target="_blank">Nex Playground 1 Year Later - Would I Still Recommend?</a></span></td>
+      <td class="link-cell"><span class="no-link">长期跟踪评测</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">使用一年后的长期追踪评测，稀有内容角度</td>
+    </tr>
+    <!-- 80 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>80</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://justadaptit.com/why-the-nex-playground-should-be-in-every-school/" target="_blank">Just Adapt It</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://justadaptit.com/why-the-nex-playground-should-be-in-every-school/" target="_blank">Why the Nex Playground Should Be in Every School</a></span></td>
+      <td class="link-cell"><span class="no-link">教育角度</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">教育/特殊适应性角度推荐，独特视角</td>
+    </tr>
+    <!-- 81 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>81</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://wellconnectedmom.com/blog/family-stuck-on-the-couch-try-these-indoor-games/" target="_blank">Well Connected Mom</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://wellconnectedmom.com/blog/family-stuck-on-the-couch-try-these-indoor-games/" target="_blank">Family Stuck On The Couch? Try These Indoor Games</a></span></td>
+      <td class="link-cell"><span class="no-link">礼品导购</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">室内游戏礼品推荐合辑，含 Nex Playground 推荐</td>
+    </tr>
+
+    <!-- ===== 玩具行业 ===== -->
+    <!-- 82 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>82</td><td class="date">2024-03</td>
+      <td class="media-name"><a href="https://thetoyinsider.com/nex-playground-review/" target="_blank">The Toy Insider</a></td>
+      <td><span class="badge badge-parenting">玩具行业</span></td>
+      <td class="title"><span class="title-text"><a href="https://thetoyinsider.com/nex-playground-review/" target="_blank">Expert Review: Nex Playground</a></span></td>
+      <td class="link-cell"><span class="no-link">专业评测</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">玩具行业权威媒体专家评测，对零售采购决策影响力大</td>
+    </tr>
+    <!-- 83 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>83</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://thetoyinsider.com/nex-playground-sesame-workshop-games-redefines-gaming/" target="_blank">The Toy Insider</a></td>
+      <td><span class="badge badge-parenting">玩具行业</span></td>
+      <td class="title"><span class="title-text"><a href="https://thetoyinsider.com/nex-playground-sesame-workshop-games-redefines-gaming/" target="_blank">Nex Playground Sesame Workshop Games Redefine Gaming</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">芝麻街游戏上线专题报道</td>
+    </tr>
+    <!-- 84 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>84</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://thetoyinsider.com/nex-playground-summer-games-news/" target="_blank">The Toy Insider</a></td>
+      <td><span class="badge badge-parenting">玩具行业</span></td>
+      <td class="title"><span class="title-text"><a href="https://thetoyinsider.com/nex-playground-summer-games-news/" target="_blank">These Nex Playground Games Take the Bummer out of Summer</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">夏季游戏阵容专题报道</td>
+    </tr>
+    <!-- 85 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>85</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://thetoyinsider.com/nex-playground-bluey-launch/" target="_blank">The Toy Insider</a></td>
+      <td><span class="badge badge-parenting">玩具行业</span></td>
+      <td class="title"><span class="title-text"><a href="https://thetoyinsider.com/nex-playground-bluey-launch/" target="_blank">Enter Dance Mode with The Nex Playground 'Bluey' Game</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Bluey 游戏上线专题</td>
+    </tr>
+    <!-- 86 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>86</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://thetoyinsider.com/nex-playground-fall-games-news/" target="_blank">The Toy Insider</a></td>
+      <td><span class="badge badge-parenting">玩具行业</span></td>
+      <td class="title"><span class="title-text"><a href="https://thetoyinsider.com/nex-playground-fall-games-news/" target="_blank">Stay Active with Bluey, the NHL, and More — New Nex Playground Games</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">秋季游戏阵容 + Bluey / NHL 合作更新</td>
+    </tr>
+    <!-- 87 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>87</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://thetoyinsider.com/teenage-mutant-ninja-turtles-nex-playground-launch/" target="_blank">The Toy Insider</a></td>
+      <td><span class="badge badge-parenting">玩具行业</span></td>
+      <td class="title"><span class="title-text"><a href="https://thetoyinsider.com/teenage-mutant-ninja-turtles-nex-playground-launch/" target="_blank">The Teenage Mutant Ninja Turtles Join Nex Playground's Lineup</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">TMNT IP 合作上线报道</td>
+    </tr>
+
+    <!-- ===== 折扣/价格 ===== -->
+    <!-- 88 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>88</td><td class="date">2024-11-28</td>
+      <td class="media-name"><a href="https://slickdeals.net/f/17938011-nex-playground-the-active-play-system-159-at-target" target="_blank">Slickdeals</a></td>
+      <td><span class="badge badge-lifestyle">折扣网站</span></td>
+      <td class="title"><span class="title-text"><a href="https://slickdeals.net/f/17938011-nex-playground-the-active-play-system-159-at-target" target="_blank">Nex Playground $159 at Target (Black Friday Deal)</a></span></td>
+      <td class="link-cell"><span class="no-link">用户分享折扣</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">黑色星期五 $159 历史低价，用户社区分享</td>
+    </tr>
+    <!-- 89 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>89</td><td class="date">2025-11-20</td>
+      <td class="media-name"><a href="https://slickdeals.net/f/18841267-ac-167-42-used-like-new-nex-playground-the-active-play-system-at-amazon" target="_blank">Slickdeals</a></td>
+      <td><span class="badge badge-lifestyle">折扣网站</span></td>
+      <td class="title"><span class="title-text"><a href="https://slickdeals.net/f/18841267-ac-167-42-used-like-new-nex-playground-the-active-play-system-at-amazon" target="_blank">Nex Playground Used/Like New at Amazon — $167.42</a></span></td>
+      <td class="link-cell"><span class="no-link">用户分享折扣</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Amazon 二手/翻新品折扣分享</td>
+    </tr>
+    <!-- 90 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>90</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.thepricer.org/how-much-does-nex-playground-subscription-cost/" target="_blank">The Pricer</a></td>
+      <td><span class="badge badge-lifestyle">折扣网站</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.thepricer.org/how-much-does-nex-playground-subscription-cost/" target="_blank">How Much Does Nex Playground Subscription Cost?</a></span></td>
+      <td class="link-cell"><span class="no-link">价格信息</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">价格导向 affiliate 内容站，聚焦订阅费用问题</td>
+    </tr>
+    <!-- 91 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>91</td><td class="date">2026</td>
+      <td class="media-name"><a href="https://www.movieguide.org/news-articles/bluey-will-soon-have-her-own-video-game-on-nex-playground.html" target="_blank">Movieguide</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.movieguide.org/news-articles/bluey-will-soon-have-her-own-video-game-on-nex-playground.html" target="_blank">Bluey Will Soon Have Her Own Video Game on Nex Playground</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Movieguide 第二篇 Nex 相关文章，聚焦 Bluey 游戏</td>
+    </tr>
+
+    <!-- ===== Amazon Live（补充）===== -->
+    <!-- 92 -->
+    <tr data-type="视频" data-tag="no">
+      <td>92</td><td class="date">2026-01-10</td>
+      <td class="media-name"><a href="https://www.amazon.com/live/video/06015e4a70ba400aba645607b384b852" target="_blank">Amazon Live — Savannah Miller</a></td>
+      <td><span class="badge badge-video">Amazon Live</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.amazon.com/live/video/06015e4a70ba400aba645607b384b852" target="_blank">Review - Nex Playground - The Active Play System</a></span></td>
+      <td class="link-cell"><a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank">amazon.com/dp/B0D2JGYX3F</a></td>
+      <td><span class="no-tag">Amazon Live 内置佣金</span></td>
+      <td class="note">创作者：Savannah Miller</td>
+    </tr>
+    <!-- 93 -->
+    <tr data-type="视频" data-tag="no">
+      <td>93</td><td class="date">2025-06-24</td>
+      <td class="media-name"><a href="https://www.amazon.com/live/video/05bb0034d6614479850ae082f684fba6" target="_blank">Amazon Live — Katie S.</a></td>
+      <td><span class="badge badge-video">Amazon Live</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.amazon.com/live/video/05bb0034d6614479850ae082f684fba6" target="_blank">Honest Review of Nex Playground Video System</a></span></td>
+      <td class="link-cell"><a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank">amazon.com/dp/B0D2JGYX3F</a></td>
+      <td><span class="no-tag">Amazon Live 内置佣金</span></td>
+      <td class="note">创作者：Katie S.</td>
+    </tr>
+    <!-- 94 -->
+    <tr data-type="视频" data-tag="no">
+      <td>94</td><td class="date">2024-07-25</td>
+      <td class="media-name"><a href="https://www.amazon.com/live/video/0d32f819cb6b4cb1aae08ebd64ef711c" target="_blank">Amazon Live — DM Finds</a></td>
+      <td><span class="badge badge-video">Amazon Live</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.amazon.com/live/video/0d32f819cb6b4cb1aae08ebd64ef711c" target="_blank">Nex Playground Game System Review: Why I LOVE It!</a></span></td>
+      <td class="link-cell"><a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank">amazon.com/dp/B0D2JGYX3F</a></td>
+      <td><span class="no-tag">Amazon Live 内置佣金</span></td>
+      <td class="note">创作者：DM Finds</td>
+    </tr>
+    <!-- 95 -->
+    <tr data-type="视频" data-tag="no">
+      <td>95</td><td class="date">2024-07-16</td>
+      <td class="media-name"><a href="https://www.amazon.com/live/video/0dd11fd42781440583761aefd800546e" target="_blank">Amazon Live — Kenneth Steinkamp</a></td>
+      <td><span class="badge badge-video">Amazon Live</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.amazon.com/live/video/0dd11fd42781440583761aefd800546e" target="_blank">In Depth Review of Nex Playground</a></span></td>
+      <td class="link-cell"><a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank">amazon.com/dp/B0D2JGYX3F</a></td>
+      <td><span class="no-tag">Amazon Live 内置佣金</span></td>
+      <td class="note">创作者：Kenneth Steinkamp</td>
+    </tr>
+    <!-- 96 -->
+    <tr data-type="视频" data-tag="no">
+      <td>96</td><td class="date">2025-01-16</td>
+      <td class="media-name"><a href="https://www.amazon.com/live/video/03e52bc237c6490eb8b1ec3c67acade5" target="_blank">Amazon Live — Kate</a></td>
+      <td><span class="badge badge-video">Amazon Live</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.amazon.com/live/video/03e52bc237c6490eb8b1ec3c67acade5" target="_blank">Nex Playground Honest Review - Guilt free screen time?!</a></span></td>
+      <td class="link-cell"><a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank">amazon.com/dp/B0D2JGYX3F</a></td>
+      <td><span class="no-tag">Amazon Live 内置佣金</span></td>
+      <td class="note">创作者：Kate；"无负罪感屏幕时间"角度</td>
+    </tr>
+    <!-- 97 -->
+    <tr data-type="视频" data-tag="no">
+      <td>97</td><td class="date">2024-07-23</td>
+      <td class="media-name"><a href="https://www.amazon.com/live/video/041a64bc160e4478a2c38a10f28dad74" target="_blank">Amazon Live — Kevin Lu</a></td>
+      <td><span class="badge badge-video">Amazon Live</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.amazon.com/live/video/041a64bc160e4478a2c38a10f28dad74" target="_blank">Nex Playground Full Review</a></span></td>
+      <td class="link-cell"><a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank">amazon.com/dp/B0D2JGYX3F</a></td>
+      <td><span class="no-tag">Amazon Live 内置佣金</span></td>
+      <td class="note">创作者：Kevin Lu | Parenting</td>
+    </tr>
+    <!-- 98 -->
+    <tr data-type="视频" data-tag="no">
+      <td>98</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.amazon.com/live/video/06bccfbce991454abb0347c89f5a9d74" target="_blank">Amazon Live — Sarah Burford</a></td>
+      <td><span class="badge badge-video">Amazon Live</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.amazon.com/live/video/06bccfbce991454abb0347c89f5a9d74" target="_blank">Everything You Need to Know about Nex Playground</a></span></td>
+      <td class="link-cell"><a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank">amazon.com/dp/B0D2JGYX3F</a></td>
+      <td><span class="no-tag">Amazon Live 内置佣金</span></td>
+      <td class="note">创作者：Sarah Burford，综合介绍视频</td>
+    </tr>
+    <!-- 99 -->
+    <tr data-type="视频" data-tag="no">
+      <td>99</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.amazon.com/live/video/0797f80c9d754f2ab7f46da8cc2a3396" target="_blank">Amazon Live — Amy</a></td>
+      <td><span class="badge badge-video">Amazon Live</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.amazon.com/live/video/0797f80c9d754f2ab7f46da8cc2a3396" target="_blank">Unboxing our Nex Playground</a></span></td>
+      <td class="link-cell"><a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank">amazon.com/dp/B0D2JGYX3F</a></td>
+      <td><span class="no-tag">Amazon Live 内置佣金</span></td>
+      <td class="note">创作者：Amy，开箱视频</td>
+    </tr>
+
+    <!-- ===== TikTok 创作者 ===== -->
+    <!-- 100 -->
+    <tr data-type="TikTok" data-tag="no">
+      <td>100</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.tiktok.com/@kristin.twomey/video/7438657163855252767" target="_blank">TikTok — @kristin.twomey</a></td>
+      <td><span class="badge badge-video">TikTok</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.tiktok.com/@kristin.twomey/video/7438657163855252767" target="_blank">THE family holiday gift this year! @Nex Playground</a></span></td>
+      <td class="link-cell"><span class="no-link">TikTok Shop</span></td><td><span class="no-tag">TikTok Shop 佣金</span></td>
+      <td class="note">节日礼品推荐，TikTok Shop affiliate</td>
+    </tr>
+    <!-- 101 -->
+    <tr data-type="TikTok" data-tag="no">
+      <td>101</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.tiktok.com/@kierra_b_lifestyle/video/7561982290889313549" target="_blank">TikTok — @kierra_b_lifestyle</a></td>
+      <td><span class="badge badge-video">TikTok</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.tiktok.com/@kierra_b_lifestyle/video/7561982290889313549" target="_blank">My Nex playground honest review — such a great indoor kids activity</a></span></td>
+      <td class="link-cell"><span class="no-link">TikTok Shop</span></td><td><span class="no-tag">TikTok Shop 佣金</span></td>
+      <td class="note">TikTok Shop affiliate 视频</td>
+    </tr>
+    <!-- 102 -->
+    <tr data-type="TikTok" data-tag="no">
+      <td>102</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.tiktok.com/@lbscakes_/video/7570196928458280205" target="_blank">TikTok — @lbscakes_</a></td>
+      <td><span class="badge badge-video">TikTok</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.tiktok.com/@lbscakes_/video/7570196928458280205" target="_blank">The Nex Playground is sooo worth the hype!</a></span></td>
+      <td class="link-cell"><span class="no-link">TikTok Shop</span></td><td><span class="no-tag">TikTok Shop 佣金</span></td>
+      <td class="note">TikTok Shop affiliate 视频</td>
+    </tr>
+    <!-- 103 -->
+    <tr data-type="TikTok" data-tag="no">
+      <td>103</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.tiktok.com/@themomlifevlogs/video/7491724734137355566" target="_blank">TikTok — @themomlifevlogs</a></td>
+      <td><span class="badge badge-video">TikTok</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.tiktok.com/@themomlifevlogs/video/7491724734137355566" target="_blank">We tried the NEX Playground — it's such a game-changer</a></span></td>
+      <td class="link-cell"><span class="no-link">有机评测</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">妈妈博主有机评测，提及 Prime Day 10% 折扣</td>
+    </tr>
+    <!-- 104 -->
+    <tr data-type="TikTok" data-tag="no">
+      <td>104</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.tiktok.com/@morgannpaigeee/video/7560044653253332238" target="_blank">TikTok — @morgannpaigeee</a></td>
+      <td><span class="badge badge-video">TikTok</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.tiktok.com/@morgannpaigeee/video/7560044653253332238" target="_blank">Nex Playground Review: Perfect Game for Kids</a></span></td>
+      <td class="link-cell"><span class="no-link">TikTok Shop</span></td><td><span class="no-tag">TikTok Shop 佣金</span></td>
+      <td class="note">TikTok Shop affiliate 视频</td>
+    </tr>
+    <!-- 105 -->
+    <tr data-type="TikTok" data-tag="no">
+      <td>105</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.tiktok.com/@sugarandrocks/video/7509982896212446494" target="_blank">TikTok — @sugarandrocks</a></td>
+      <td><span class="badge badge-video">TikTok</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.tiktok.com/@sugarandrocks/video/7509982896212446494" target="_blank">Nex Playground is an absolute win! No controllers just body movement.</a></span></td>
+      <td class="link-cell"><span class="no-link">TikTok Shop</span></td><td><span class="no-tag">TikTok Shop 佣金</span></td>
+      <td class="note">TikTok Shop affiliate 视频</td>
+    </tr>
+    <!-- 106 -->
+    <tr data-type="TikTok" data-tag="no">
+      <td>106</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.tiktok.com/@theghousefam/video/7504753508088876319" target="_blank">TikTok — @theghousefam</a></td>
+      <td><span class="badge badge-video">TikTok</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.tiktok.com/@theghousefam/video/7504753508088876319" target="_blank">Coolest interactive play game console for the whole family!</a></span></td>
+      <td class="link-cell"><span class="no-link">TikTok Shop</span></td><td><span class="no-tag">TikTok Shop 佣金</span></td>
+      <td class="note">TikTok Shop affiliate 视频</td>
+    </tr>
+    <!-- 107 -->
+    <tr data-type="TikTok" data-tag="no">
+      <td>107</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.tiktok.com/@nexplayground/video/7530404799725063438" target="_blank">TikTok — @nexplayground (官方)</a></td>
+      <td><span class="badge badge-video">TikTok 官方</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.tiktok.com/@nexplayground/video/7530404799725063438" target="_blank">Turn screen time into active play! (官方病毒视频)</a></span></td>
+      <td class="link-cell"><span class="no-link">官方内容</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">⭐ 2,000,000+ 播放量 · 461K+ 点赞，最高传播官方视频</td>
+    </tr>
+
+
+    <!-- ===== 最终批次新增 ===== -->
+    <!-- 108 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>108</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.wired.com/review/nex-playground/" target="_blank">WIRED</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.wired.com/review/nex-playground/" target="_blank">Nex Playground Review: Family Fun and Gimmicky Games</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">WIRED 深度评测，Condé Nast 旗下，含联盟链接概率高，DA 极高</td>
+    </tr>
+    <!-- 109 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>109</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.creativebloq.com/entertainment/gaming/nex-playground-review-an-apple-like-active-games-console-for-the-family" target="_blank">Creative Bloq</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.creativebloq.com/entertainment/gaming/nex-playground-review-an-apple-like-active-games-console-for-the-family" target="_blank">Nex Playground review: an Apple-like active games console for the family</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Future plc 旗下 Creative Bloq 正式评测（有别于已收录的促销文章）</td>
+    </tr>
+    <!-- 110 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>110</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://www.purexbox.com/news/2025/12/nex-playground-ceo-talks-comparisons-to-xbox-and-ps5-and-why-their-console-is-so-affordable" target="_blank">Pure Xbox</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.purexbox.com/news/2025/12/nex-playground-ceo-talks-comparisons-to-xbox-and-ps5-and-why-their-console-is-so-affordable" target="_blank">Nex Playground CEO Talks Comparisons To Xbox &amp; PS5, And Why Their Console Is So Affordable</a></span></td>
+      <td class="link-cell"><span class="no-link">专访报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Pure Xbox CEO 专访，对比 Xbox/PS5 定价策略</td>
+    </tr>
+    <!-- 111 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>111</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.computertechreviews.com/review/nex-playground-review/" target="_blank">Computer Tech Reviews</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.computertechreviews.com/review/nex-playground-review/" target="_blank">Nex Playground Review: The Future of Interactive Play</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">科技评测站，含 Amazon affiliate 概率高</td>
+    </tr>
+    <!-- 112 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>112</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.risingnetworth.com/nex-playground-active-play-system-review/" target="_blank">Rising Net Worth</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.risingnetworth.com/nex-playground-active-play-system-review/" target="_blank">Nex Playground Active Play System Review 2025</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">个人理财/生活类博客评测</td>
+    </tr>
+    <!-- 113 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>113</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.gamespot.com/articles/nex-playground-boss-says-the-console-solves-the-wii-problem/1100-6537124/" target="_blank">GameSpot</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.gamespot.com/articles/nex-playground-boss-says-the-console-solves-the-wii-problem/1100-6537124/" target="_blank">Nex Playground Boss Says The Console Solves The Wii 'Problem'</a></span></td>
+      <td class="link-cell"><span class="no-link">专访分析</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">CEO 谈如何解决 Wii "设置麻烦"问题</td>
+    </tr>
+    <!-- 114 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>114</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.theouterhaven.net/nex-playground-review-getting-yourself-active-without-vr/" target="_blank">The Outer Haven</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.theouterhaven.net/nex-playground-review-getting-yourself-active-without-vr/" target="_blank">Nex Playground Review – Getting Yourself Active Without VR</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">游戏独立媒体，对比 VR 体感游戏</td>
+    </tr>
+    <!-- 115 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>115</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.theouterhaven.net/bluey-finally-makes-its-way-to-the-nex-playground/" target="_blank">The Outer Haven</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.theouterhaven.net/bluey-finally-makes-its-way-to-the-nex-playground/" target="_blank">Bluey Finally Makes Its Way To The Nex Playground</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Bluey 游戏上线报道</td>
+    </tr>
+    <!-- 116 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>116</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.jamesgames.com/Story/nex-playground-review" target="_blank">JamesGames</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.jamesgames.com/Story/nex-playground-review" target="_blank">JamesGames.com Nex Playground Review</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">家庭游戏专媒评测</td>
+    </tr>
+
+    <!-- ===== 商业/行业媒体（新增）===== -->
+    <!-- 117 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>117</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://www.entrepreneur.com/business-news/how-this-little-known-toymaker-sold-out-a-product-on-amazon/500867" target="_blank">Entrepreneur</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.entrepreneur.com/business-news/how-this-little-known-toymaker-sold-out-a-product-on-amazon/500867" target="_blank">How This Underdog Toymaker Soared to $150M in Annual Sales: 'Didn't Know This Thing Existed'</a></span></td>
+      <td class="link-cell"><span class="no-link">商业报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Entrepreneur 深度商业报道，讲述"从无人知晓到 $150M"的增长故事</td>
+    </tr>
+    <!-- 118 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>118</td><td class="date">2024-03</td>
+      <td class="media-name"><a href="https://www.fastcompany.com/91047106/how-nex-playground-designed-a-gaming-console-for-kids-that-wont-make-them-couch-potatoes" target="_blank">Fast Company</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.fastcompany.com/91047106/how-nex-playground-designed-a-gaming-console-for-kids-that-wont-make-them-couch-potatoes" target="_blank">How Nex Playground designed a gaming console for kids that won't make them couch potatoes</a></span></td>
+      <td class="link-cell"><span class="no-link">设计/商业报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Fast Company 早期深度报道，聚焦产品设计理念</td>
+    </tr>
+    <!-- 119 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>119</td><td class="date">2025-05</td>
+      <td class="media-name"><a href="https://www.fastcompany.com/91335451/nex-playground-video-games" target="_blank">Fast Company</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.fastcompany.com/91335451/nex-playground-video-games" target="_blank">Meet the startup taking on Nintendo, Xbox, and PlayStation</a></span></td>
+      <td class="link-cell"><span class="no-link">商业报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Fast Company 挑战三大主机巨头的创业故事报道</td>
+    </tr>
+    <!-- 120 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>120</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://www.fastcompany.com/91460531/nex-playground-console-christmas-toy-gaming" target="_blank">Fast Company</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.fastcompany.com/91460531/nex-playground-console-christmas-toy-gaming" target="_blank">How the Nex Playground game system became the holiday's hottest toy</a></span></td>
+      <td class="link-cell"><span class="no-link">商业报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Fast Company 节日爆款分析，2025 假日季最热玩具</td>
+    </tr>
+    <!-- 121 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>121</td><td class="date">2024-09-20</td>
+      <td class="media-name"><a href="https://globaltoynews.com/2024/09/20/gtn-spotlight-nex-playground-active-gaming-console/" target="_blank">Global Toy News</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://globaltoynews.com/2024/09/20/gtn-spotlight-nex-playground-active-gaming-console/" target="_blank">GTN Spotlight: Nex Playground Active Gaming Console</a></span></td>
+      <td class="link-cell"><span class="no-link">行业报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">玩具行业专媒 GTN Spotlight 专题，零售上市前报道</td>
+    </tr>
+    <!-- 122 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>122</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://naavik.co/digest/nex-playground-and-motion-gamings-second-act/" target="_blank">Naavik</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://naavik.co/digest/nex-playground-and-motion-gamings-second-act/" target="_blank">Nex Playground and Motion Gaming's Second Act</a></span></td>
+      <td class="link-cell"><span class="no-link">行业分析</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">游戏行业分析媒体 Naavik，深度分析体感游戏复兴</td>
+    </tr>
+    <!-- 123 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>123</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://naavik.co/podcast/family-first-gaming-breaking-into-consumer-hardware-with-nex/" target="_blank">Naavik</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://naavik.co/podcast/family-first-gaming-breaking-into-consumer-hardware-with-nex/" target="_blank">Family-First Gaming: Breaking Into Consumer Hardware with Nex (Podcast)</a></span></td>
+      <td class="link-cell"><span class="no-link">播客</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Naavik 播客专访 Nex 团队，讨论消费硬件市场进入策略</td>
+    </tr>
+    <!-- 124 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>124</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.thegamebusiness.com/p/indie-horror-horses-gets-media-support" target="_blank">The Game Business</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.thegamebusiness.com/p/indie-horror-horses-gets-media-support" target="_blank">Bigger than Xbox. NEX Playground is a timely reminder of the power of consoles</a></span></td>
+      <td class="link-cell"><span class="no-link">行业分析</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">游戏商业媒体 The Game Business，分析 Nex 超越 Xbox 的行业意义</td>
+    </tr>
+    <!-- 125 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>125</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.thegamebusiness.com/p/we-want-a-nex-playground-in-every" target="_blank">The Game Business</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.thegamebusiness.com/p/we-want-a-nex-playground-in-every" target="_blank">"We want a Nex Playground in every living room" — CEO Interview</a></span></td>
+      <td class="link-cell"><span class="no-link">CEO 专访</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">CEO David Lee 深度专访，阐述全球化愿景</td>
+    </tr>
+    <!-- 126 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>126</td><td class="date">2024-01</td>
+      <td class="media-name"><a href="https://www.reviewed.com/parenting/features/nex-playground-best-ces-2024-launch-game-01-11-2024" target="_blank">Reviewed (USA Today)</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.reviewed.com/parenting/features/nex-playground-best-ces-2024-launch-game-01-11-2024" target="_blank">Nex Playground is the best CES 2024 launch for family game nights</a></span></td>
+      <td class="link-cell"><span class="no-link">CES 报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">USA Today 旗下 Reviewed，CES 2024 最佳家庭游戏产品评选</td>
+    </tr>
+    <!-- 127 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>127</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://www.rollingstone.com/product-recommendations/gift-guide/best-gifts-for-gamers-holiday-christmas-2025-1235481962/" target="_blank">Rolling Stone</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.rollingstone.com/product-recommendations/gift-guide/best-gifts-for-gamers-holiday-christmas-2025-1235481962/" target="_blank">30 Best Gifts for Gamers in 2025 (includes Nex Playground)</a></span></td>
+      <td class="link-cell"><span class="no-link">礼品导购</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Rolling Stone 2025 年度游戏礼品榜入选，含联盟链接</td>
+    </tr>
+
+    <!-- ===== Yahoo 生态系统（新增）===== -->
+    <!-- 128 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>128</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://creators.yahoo.com/lifestyle/story/hands-on-with-the-nex-playground-one-of-the-hottest-toys-for-a-good-reason-150845296.html" target="_blank">Yahoo Creators</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://creators.yahoo.com/lifestyle/story/hands-on-with-the-nex-playground-one-of-the-hottest-toys-for-a-good-reason-150845296.html" target="_blank">Hands-on with the Nex Playground — One of the hottest toys for a good reason</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Yahoo Creators 创作者内容平台</td>
+    </tr>
+    <!-- 129 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>129</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://ca.news.yahoo.com/nex-playground-review-155213766.html" target="_blank">Yahoo News Canada</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://ca.news.yahoo.com/nex-playground-review-155213766.html" target="_blank">Why the Nex Playground is the video game system you'll actually want your kids to play for hours</a></span></td>
+      <td class="link-cell"><span class="no-link">转载评测</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Yahoo News 加拿大版转载</td>
+    </tr>
+    <!-- 130 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>130</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://tech.yahoo.com/gaming/deals/articles/apple-nex-playground-games-console-120000378.html" target="_blank">Yahoo Tech</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://tech.yahoo.com/gaming/deals/articles/apple-nex-playground-games-console-120000378.html" target="_blank">The "Apple-like" Nex Playground games console just became affordable</a></span></td>
+      <td class="link-cell"><span class="no-link">促销文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Yahoo Tech 折扣报道，对比苹果产品定位</td>
+    </tr>
+    <!-- 131 -->
+    <tr data-type="礼品导购" data-tag="yes">
+      <td>131</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://tech.yahoo.com/gaming/deals/article/the-nex-playground-is-this-years-family-friendly-gaming-gift-pick--snag-one-for-50-off-145652197.html" target="_blank">Yahoo Tech</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://tech.yahoo.com/gaming/deals/article/the-nex-playground-is-this-years-family-friendly-gaming-gift-pick--snag-one-for-50-off-145652197.html" target="_blank">The Nex Playground is this year's family-friendly gaming gift pick — $50 off</a></span></td>
+      <td class="link-cell"><a class="amz-link" href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank">amazon.com/dp/B0D2JGYX3F</a></td>
+      <td><span class="no-tag">Yahoo 联盟（未提取tag）</span></td>
+      <td class="note">snippet 中确认含 Amazon 产品链接，假日季 $50 折扣推荐</td>
+    </tr>
+    <!-- 132 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>132</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.yahoo.com/tech/nex-playground-fits-trend-products-113302820.html" target="_blank">Yahoo Tech</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.yahoo.com/tech/nex-playground-fits-trend-products-113302820.html" target="_blank">Nex Playground fits with a trend of products for parents who want to limit screen time</a></span></td>
+      <td class="link-cell"><span class="no-link">分析文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Yahoo Tech 分析"限制屏幕时间"消费趋势中的 Nex 定位</td>
+    </tr>
+    <!-- 133 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>133</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://tech.yahoo.com/toys-games/articles/mark-words-nex-playground-kids-140000529.html" target="_blank">Yahoo Tech</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://tech.yahoo.com/toys-games/articles/mark-words-nex-playground-kids-140000529.html" target="_blank">As a Toy Editor, I Love That This Gaming Console Gets Your Family Up and Moving</a></span></td>
+      <td class="link-cell"><span class="no-link">编辑推荐</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">玩具编辑身份背书推荐</td>
+    </tr>
+
+    <!-- ===== 零售页面 ===== -->
+    <!-- 134 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>134</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.walmart.com/ip/Nex-Playground-Game-System/9402952208" target="_blank">Walmart</a></td>
+      <td><span class="badge badge-lifestyle">零售页面</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.walmart.com/ip/Nex-Playground-Game-System/9402952208" target="_blank">Nex Playground - The Active Play System (Walmart)</a></span></td>
+      <td class="link-cell"><span class="no-link">零售产品页</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Walmart 官方产品页，HSA/FSA 资格认证</td>
+    </tr>
+
+    <!-- ===== 玩具行业（新增游戏）===== -->
+    <!-- 135 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>135</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://thetoyinsider.com/nex-gabbys-dollhouse-video-game/" target="_blank">The Toy Insider</a></td>
+      <td><span class="badge badge-parenting">玩具行业</span></td>
+      <td class="title"><span class="title-text"><a href="https://thetoyinsider.com/nex-gabbys-dollhouse-video-game/" target="_blank">Shake Your Tail with Nex Playground's 'Gabby's Dollhouse' Video Game</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Gabby's Dollhouse IP 游戏上线报道</td>
+    </tr>
+    <!-- 136 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>136</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://thetoyinsider.com/kung-fu-panda-nex-playground-game-launch/" target="_blank">The Toy Insider</a></td>
+      <td><span class="badge badge-parenting">玩具行业</span></td>
+      <td class="title"><span class="title-text"><a href="https://thetoyinsider.com/kung-fu-panda-nex-playground-game-launch/" target="_blank">Embrace Your Inner Warrior with Nex Playground's New 'Kung Fu Panda' Game</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Kung Fu Panda IP 游戏上线报道</td>
+    </tr>
+
+    <!-- ===== 长尾博客 ===== -->
+    <!-- 137 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>137</td><td class="date">2025-05</td>
+      <td class="media-name"><a href="https://girlgonegamercom.wordpress.com/2025/05/08/unlock-endless-fun-review-of-the-nex-playground-active-play-system/" target="_blank">Girl Gone Gamer</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://girlgonegamercom.wordpress.com/2025/05/08/unlock-endless-fun-review-of-the-nex-playground-active-play-system/" target="_blank">Unlock Endless Fun: Review of the Nex Playground Active Play System!</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">WordPress 女性游戏博主评测</td>
+    </tr>
+    <!-- 138 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>138</td><td class="date">2025-07</td>
+      <td class="media-name"><a href="https://amproductreview.blogspot.com/2025/07/nex-playground-review-ai-game-console.html" target="_blank">AM Product Review</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://amproductreview.blogspot.com/2025/07/nex-playground-review-ai-game-console.html" target="_blank">Nex Playground Review: The AI Game Console That Got My Kids Moving</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Blogspot 亲子测评博客，Amazon affiliate 高概率</td>
+    </tr>
+
+
+    <!-- ===== 国际媒体 + 科技媒体补充 ===== -->
+    <!-- 139 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>139</td><td class="date">—</td>
+      <td class="media-name"><a href="https://www.goodhousekeeping.com/childrens-products/toy-reviews/a62993181/nex-playground-review/" target="_blank">Good Housekeeping</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.goodhousekeeping.com/childrens-products/toy-reviews/a62993181/nex-playground-review/" target="_blank">Nex Playground Review: We Tested the Motion-Based Gaming Console</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Hearst 旗下权威家居媒体，亲测评测，DA 极高，含联盟链接</td>
+    </tr>
+    <!-- 140 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>140</td><td class="date">—</td>
+      <td class="media-name"><a href="https://www.telegraph.co.uk/recommended/tech/best-active-gaming-kids/nex-playground-review/" target="_blank">The Telegraph</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.telegraph.co.uk/recommended/tech/best-active-gaming-kids/nex-playground-review/" target="_blank">Nex Playground review: the best active gaming system for kids</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">英国主流大报 Telegraph，进入英欧市场的重要媒体背书</td>
+    </tr>
+    <!-- 141 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>141</td><td class="date">2026-03-28</td>
+      <td class="media-name"><a href="https://www.zdnet.com/article/nex-playground-review/" target="_blank">ZDNet</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.zdnet.com/article/nex-playground-review/" target="_blank">Nex Playground review</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">ZDNet 2026-03-28 评测，CBS Interactive 旗下，DA 高，含联盟链接</td>
+    </tr>
+
+    <!-- ===== YouTube 视频 ===== -->
+    <!-- 142 -->
+    <tr data-type="YouTube" data-tag="no">
+      <td>142</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.youtube.com/watch?v=LhTrzXyrCvs" target="_blank">YouTube — First L00k Toys</a></td>
+      <td><span class="badge badge-video">YouTube</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.youtube.com/watch?v=LhTrzXyrCvs" target="_blank">Nex Playground Active Gaming Console @Holiday of Play 2024</a></span></td>
+      <td class="link-cell"><span class="no-link">YouTube 视频</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">玩具展会报道视频，约 549 次播放，Holiday of Play 2024 活动</td>
+    </tr>
+    <!-- 143 -->
+    <tr data-type="YouTube" data-tag="no">
+      <td>143</td><td class="date">2024-03</td>
+      <td class="media-name"><a href="https://www.youtube.com/watch?v=yP4y-Sg_Sso" target="_blank">YouTube — Nex Playground 官方</a></td>
+      <td><span class="badge badge-video">YouTube</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.youtube.com/watch?v=yP4y-Sg_Sso" target="_blank">Unleash Family Fun with the Nex Playground Console</a></span></td>
+      <td class="link-cell"><span class="no-link">YouTube 官方视频</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Nex 官方频道发布的产品宣传视频</td>
+    </tr>
+    <!-- 144 -->
+    <tr data-type="视频" data-tag="no">
+      <td>144</td><td class="date">2024-06</td>
+      <td class="media-name"><a href="https://www.youtube.com/watch?v=1xN51Fk3kQk" target="_blank">YouTube — 独立评测频道</a></td>
+      <td><span class="badge badge-video">YouTube</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.youtube.com/watch?v=1xN51Fk3kQk" target="_blank">Nex Playground Review: Worth the hype!</a></span></td>
+      <td class="link-cell"><span class="no-link">YouTube 视频</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">第三方科技/游戏评测频道</td>
+    </tr>
+    <!-- 145 -->
+    <tr data-type="视频" data-tag="no">
+      <td>145</td><td class="date">2026-02-04</td>
+      <td class="media-name"><a href="https://youtu.be/xBUA-UtwqQo" target="_blank">YouTube — 独立评测频道</a></td>
+      <td><span class="badge badge-video">YouTube</span></td>
+      <td class="title"><span class="title-text"><a href="https://youtu.be/xBUA-UtwqQo" target="_blank">Nex Playground video game console REVIEW</a></span></td>
+      <td class="link-cell"><span class="no-link">YouTube 视频</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">ResetEra 社区引用的 2026-02-04 评测视频</td>
+    </tr>
+
+
+    <!-- ===== 主流大媒体补充 ===== -->
+    <!-- 146 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>146</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.nytimes.com/wirecutter/reviews/nex-playground-review/" target="_blank">NYT Wirecutter</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.nytimes.com/wirecutter/reviews/nex-playground-review/" target="_blank">Nex Playground Review: My New Favorite Way to Play Video Games</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">纽约时报旗下 Wirecutter，最权威消费品评测媒体之一，DA 极高；作者 Haley Perry；X/Twitter 官方账号确认发布</td>
+    </tr>
+    <!-- 147 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>147</td><td class="date">2024</td>
+      <td class="media-name"><a href="https://www.polygon.com/reviews/24093981/nex-playground-review" target="_blank">Polygon</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.polygon.com/reviews/24093981/nex-playground-review" target="_blank">Nex Playground review</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Vox Media 旗下 Polygon 正式评测，游戏媒体标杆级别</td>
+    </tr>
+    <!-- 148 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>148</td><td class="date">2024-04-02</td>
+      <td class="media-name"><a href="https://www.polygon.com/2024/4/2/24118938/nex-playground-camera-gaming-device-hands-on" target="_blank">Polygon</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.polygon.com/2024/4/2/24118938/nex-playground-camera-gaming-device-hands-on" target="_blank">The Nex Playground is a kid-friendly camera gaming device — hands-on</a></span></td>
+      <td class="link-cell"><span class="no-link">试玩报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Polygon 上市前 hands-on 试玩，2024-04-02 发布</td>
+    </tr>
+    <!-- 149 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>149</td><td class="date">2026-02-03</td>
+      <td class="media-name"><a href="https://www.goodhousekeeping.com/reviews/nex-playground-review/" target="_blank">Good Housekeeping</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.goodhousekeeping.com/reviews/nex-playground-review/" target="_blank">Nex Playground Review: What It Is and Families It's Best For</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">作者 Angel Madison；荣获 Good Housekeeping 2025 Parenting Award；2026-02-03 发布（另有早期版本见 #139）</td>
+    </tr>
+    <!-- 150 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>150</td><td class="date">2026-03-18</td>
+      <td class="media-name"><a href="https://www.cnet.com/tech/gaming/nex-playground-review/" target="_blank">CNET</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.cnet.com/tech/gaming/nex-playground-review/" target="_blank">The movement-based Nex Playground might be the antidote to parental screen time guilt</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">⚠️ URL 为推断路径，内容标题和日期（2026-03-18）已确认；Red Ventures 旗下，DA 极高</td>
+    </tr>
+
+
+    <!-- ===== 官网确认大媒体（URL 待填）===== -->
+    <!-- 151 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>151</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.theverge.com/tech/705269/nex-playground-kid-friendly-gaming-console-amazon-prime-day-deal" target="_blank">The Verge</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.theverge.com/tech/705269/nex-playground-kid-friendly-gaming-console-amazon-prime-day-deal" target="_blank">Nex Playground kid-friendly gaming console — Amazon Prime Day deal</a></span></td>
+      <td class="link-cell"><span class="no-link">报道/促销</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">官网首页背书；Vox Media 旗下；Prime Day 专题报道</td>
+    </tr>
+    <!-- 152 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>152</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.theverge.com/gadgets/802964/best-mom-gift-ideas" target="_blank">The Verge</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.theverge.com/gadgets/802964/best-mom-gift-ideas" target="_blank">Best Mom Gift Ideas (includes Nex Playground)</a></span></td>
+      <td class="link-cell"><span class="no-link">礼品导购</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">The Verge 第二篇：妈妈礼品指南，含 Nex Playground 推荐</td>
+    </tr>
+    <!-- 153 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>153</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://www.forbes.com/sites/forbes-personal-shopper/article/best-gifts-for-9-year-old/" target="_blank">Forbes</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.forbes.com/sites/forbes-personal-shopper/article/best-gifts-for-9-year-old/" target="_blank">Best Gifts for 9-Year-Olds (Forbes Personal Shopper)</a></span></td>
+      <td class="link-cell"><span class="no-link">礼品导购</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">官网首页背书；Forbes Personal Shopper 礼品导购，含 Nex Playground 推荐</td>
+    </tr>
+    <!-- 154 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>154</td><td class="date">2025-05-26</td>
+      <td class="media-name"><a href="https://www.forbes.com/sites/emilygreenwald/2025/05/26/parents-are-shifting-their-perspective-on-screen-time-for-their-kids/" target="_blank">Forbes</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.forbes.com/sites/emilygreenwald/2025/05/26/parents-are-shifting-their-perspective-on-screen-time-for-their-kids/" target="_blank">Parents Are Shifting Their Perspective On Screen Time For Their Kids</a></span></td>
+      <td class="link-cell"><span class="no-link">专栏文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">⚠️ URL 为推断路径；作者 Dr. Emily Greenwald（Nex 首席儿科顾问）；2025-05-26；内容已确认</td>
+    </tr>
+    <!-- 155 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>155</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://nypost.com/shopping/top-hottest-christmas-holiday-toys-2025-per-experts/" target="_blank">New York Post</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://nypost.com/shopping/top-hottest-christmas-holiday-toys-2025-per-experts/" target="_blank">Top Hottest Christmas Holiday Toys 2025 Per Experts (NY Post)</a></span></td>
+      <td class="link-cell"><span class="no-link">礼品导购</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">官网首页背书；2025 节日热门玩具专家推荐榜单</td>
+    </tr>
+    <!-- 156 -->
+    <tr data-type="育儿博客" data-tag="no">
+      <td>156</td><td class="date">—</td>
+      <td class="media-name"><a href="https://www.parents.com/nex-playground-review-8744176" target="_blank">Parents Magazine</a></td>
+      <td><span class="badge badge-parenting">育儿博客</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.parents.com/nex-playground-review-8744176" target="_blank">Nex Playground Review (Parents Magazine)</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">官网首页背书；Dotdash Meredith 旗下专业育儿媒体；独立评测文章</td>
+    </tr>
+    <!-- 157 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>157</td><td class="date">2025-11-20</td>
+      <td class="media-name"><a href="https://www.usatoday.com/story/shopping/2025/11/20/amazon-black-friday-deal-nex-playground-game-console/87274715007/" target="_blank">USA Today</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.usatoday.com/story/shopping/2025/11/20/amazon-black-friday-deal-nex-playground-game-console/87274715007/" target="_blank">Amazon Black Friday deal: Nex Playground game console</a></span></td>
+      <td class="link-cell"><span class="no-link">促销报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">官网首页背书；USA Today 黑色星期五 Amazon 促销专题；2025-11-20</td>
+    </tr>
+    <!-- 158 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>158</td><td class="date">—</td>
+      <td class="media-name"><a href="https://www.today.com/shop/best-gifts-toys-7-year-olds-our-gift-guide-t139588" target="_blank">Today Show (NBC)</a></td>
+      <td><span class="badge badge-video">TV/视频</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.today.com/shop/best-gifts-toys-7-year-olds-our-gift-guide-t139588" target="_blank">Best Gifts &amp; Toys for 7-Year-Olds — Today Show Gift Guide</a></span></td>
+      <td class="link-cell"><span class="no-link">礼品导购</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">官网首页背书；NBC Today Show 礼品指南；电视节目级曝光</td>
+    </tr>
+
+
+    <!-- ===== 搜索引擎补充批次（159–181）===== -->
+    <!-- 159 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>159</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://kotaku.com/this-motion-controlled-gaming-console-the-nex-playground-is-under-200-at-amazon-2000634139" target="_blank">Kotaku</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://kotaku.com/this-motion-controlled-gaming-console-the-nex-playground-is-under-200-at-amazon-2000634139" target="_blank">Nex Playground Motion-Controlled Gaming Console Hits an All-Time Low</a></span></td>
+      <td class="link-cell"><span class="no-link">促销报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Kotaku 促销报道，历史低价；10K+ 单月销量</td>
+    </tr>
+    <!-- 160 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>160</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://kotaku.com/turn-your-living-room-into-a-playground-with-the-nex-playground-while-its-discounted-by-20-2000648449" target="_blank">Kotaku</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://kotaku.com/turn-your-living-room-into-a-playground-with-the-nex-playground-while-its-discounted-by-20-2000648449" target="_blank">Forget Nintendo, Nex Motion Gaming Console Hits All-Time Low — 80K+ Sold</a></span></td>
+      <td class="link-cell"><span class="no-link">促销报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Kotaku 第二篇，80K+ 销量数据；20% 折扣报道</td>
+    </tr>
+    <!-- 161 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>161</td><td class="date">2026-03</td>
+      <td class="media-name"><a href="https://kotaku.com/ram-shortage-nex-playground-console-price-increase-300-april-2000681935" target="_blank">Kotaku</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://kotaku.com/ram-shortage-nex-playground-console-price-increase-300-april-2000681935" target="_blank">RAM Crisis Forces Nex To Raise Price On Playground Kids Console</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Kotaku 第三篇；RAM 短缺导致价格从 $249 上涨至 $299</td>
+    </tr>
+    <!-- 162 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>162</td><td class="media-name"><a href="https://www.xda-developers.com/xbox-losing-to-nex-playground/" target="_blank">XDA Developers</a></td>
+      <td class="date">2025-12</td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.xda-developers.com/xbox-losing-to-nex-playground/" target="_blank">Microsoft's Xbox is struggling to sell better than a console you've never heard of</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻分析</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">XDA 第二篇；分析 Xbox 被 Nex Playground 超越的销售数据</td>
+    </tr>
+    <!-- 163 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>163</td><td class="media-name"><a href="https://www.xda-developers.com/forget-the-ps5-this-little-known-console-reportedly-outsold-it-for-a-week/" target="_blank">XDA Developers</a></td>
+      <td class="date">2025-12</td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.xda-developers.com/forget-the-ps5-this-little-known-console-reportedly-outsold-it-for-a-week/" target="_blank">Forget the PS5, this little-known console reportedly outsold it for a week</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">XDA 第三篇；Nex 曾短暂超越 PS5 销量的报道</td>
+    </tr>
+    <!-- 164 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>164</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://www.windowscentral.com/gaming/xbox/xbox-did-so-badly-on-us-black-friday-sales-it-was-beaten-by-a-console-youve-never-heard-of" target="_blank">Windows Central</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.windowscentral.com/gaming/xbox/xbox-did-so-badly-on-us-black-friday-sales-it-was-beaten-by-a-console-youve-never-heard-of" target="_blank">Xbox did so badly on US Black Friday sales its SKUs were beaten by a console you've never heard of</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Windows Central 第三篇；聚焦 Xbox 黑色星期五惨败数据</td>
+    </tr>
+    <!-- 165 -->
+    <tr data-type="新闻发布" data-tag="no">
+      <td>165</td><td class="date">2026-01-05</td>
+      <td class="media-name"><a href="https://www.businesswire.com/news/home/20260105030690/en/Dude-Perfect-Shoots-and-Scores-Bringing-Signature-Trick-Shots-Exclusively-to-Nex-Playground" target="_blank">BusinessWire</a></td>
+      <td><span class="badge badge-press">新闻发布</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.businesswire.com/news/home/20260105030690/en/Dude-Perfect-Shoots-and-Scores-Bringing-Signature-Trick-Shots-Exclusively-to-Nex-Playground" target="_blank">Dude Perfect Shoots and Scores: Bringing Signature Trick-Shots Exclusively to Nex Playground</a></span></td>
+      <td class="link-cell"><span class="no-link">官方 PR</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">CES 2026 Dude Perfect × Nex 合作公告</td>
+    </tr>
+    <!-- 166 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>166</td><td class="date">2026-03</td>
+      <td class="media-name"><a href="https://finance.yahoo.com/news/nex-playground-set-exceed-one-130000314.html" target="_blank">Yahoo Finance</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://finance.yahoo.com/news/nex-playground-set-exceed-one-130000314.html" target="_blank">Nex Playground Set to Exceed One Million Lifetime Units Sold (Yahoo Finance)</a></span></td>
+      <td class="link-cell"><span class="no-link">PR 转载</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">GDC 百万台里程碑新闻的 Yahoo Finance 转载</td>
+    </tr>
+    <!-- 167 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>167</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://dallasinnovates.com/dude-perfects-trick-shot-gameplay-is-coming-to-nex-playground/" target="_blank">Dallas Innovates</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://dallasinnovates.com/dude-perfects-trick-shot-gameplay-is-coming-to-nex-playground/" target="_blank">Dude Perfect's Trick-Shot Gameplay Is Coming to Nex Playground</a></span></td>
+      <td class="link-cell"><span class="no-link">区域科技媒体</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">德州本地科技媒体，聚焦 Dude Perfect（德州品牌）× Nex 合作</td>
+    </tr>
+    <!-- 168 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>168</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://thelicensingletter.com/dude-perfect-scores-a-licensing-partnership-with-nex/" target="_blank">The Licensing Letter</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://thelicensingletter.com/dude-perfect-scores-a-licensing-partnership-with-nex/" target="_blank">Dude Perfect Scores a Licensing Partnership with Nex</a></span></td>
+      <td class="link-cell"><span class="no-link">授权行业</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">IP 授权行业专刊 The Licensing Letter，Dude Perfect 合作报道</td>
+    </tr>
+    <!-- 169 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>169</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://www.licenseglobal.com/video-games/nex-dude-perfect-partner-for-gameplay" target="_blank">License Global</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.licenseglobal.com/video-games/nex-dude-perfect-partner-for-gameplay" target="_blank">Nex, Dude Perfect Partner for Gameplay</a></span></td>
+      <td class="link-cell"><span class="no-link">授权行业</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">License Global 第二篇（Dude Perfect 专题，有别于已收录的假日游戏阵容文章）</td>
+    </tr>
+    <!-- 170 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>170</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://www.spielwarenmesse.de/en/mag/toy-market-news/nex-and-dude-perfect-partner-for-new-motion-powered-gameplay/" target="_blank">Spielwarenmesse</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.spielwarenmesse.de/en/mag/toy-market-news/nex-and-dude-perfect-partner-for-new-motion-powered-gameplay/" target="_blank">Nex and Dude Perfect partner for new motion-powered gameplay</a></span></td>
+      <td class="link-cell"><span class="no-link">国际玩具行业</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">德国纽伦堡玩具展官方媒体；国际玩具行业背书，进军欧洲市场前的重要覆盖</td>
+    </tr>
+    <!-- 171 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>171</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://www.4scarrsgaming.com/2026/01/dude-perfect-motion-game-nex-playground-2026.html" target="_blank">4Scarrs Gaming</a></td>
+      <td><span class="badge badge-gaming">游戏媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.4scarrsgaming.com/2026/01/dude-perfect-motion-game-nex-playground-2026.html" target="_blank">Dude Perfect Is Bringing a Motion-Based Trick-Shot Game to Nex Playground in 2026</a></span></td>
+      <td class="link-cell"><span class="no-link">游戏新闻</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">4Scarrs Gaming 第三篇；Dude Perfect 游戏上线报道</td>
+    </tr>
+    <!-- 172 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>172</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://linustechtips.com/topic/1633096-gaming-with-a-4yo-xbox-kinect-vs-switch-vs-wii-vs-nex-playground/" target="_blank">Linus Tech Tips Forums</a></td>
+      <td><span class="badge badge-gaming">游戏论坛</span></td>
+      <td class="title"><span class="title-text"><a href="https://linustechtips.com/topic/1633096-gaming-with-a-4yo-xbox-kinect-vs-switch-vs-wii-vs-nex-playground/" target="_blank">Gaming with a 4yo — Xbox Kinect vs Switch vs Wii vs Nex Playground</a></span></td>
+      <td class="link-cell"><span class="no-link">社区讨论</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">LTT 技术论坛；科技爱好者家长比较选购讨论</td>
+    </tr>
+    <!-- 173 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>173</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://famiboards.com/threads/nex-playground-the-new-wii-and-kinnect-like-family-console.15723/" target="_blank">Famiboards</a></td>
+      <td><span class="badge badge-gaming">游戏论坛</span></td>
+      <td class="title"><span class="title-text"><a href="https://famiboards.com/threads/nex-playground-the-new-wii-and-kinnect-like-family-console.15723/" target="_blank">Nex Playground — the new Wii and Kinect-like family console</a></span></td>
+      <td class="link-cell"><span class="no-link">社区讨论</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Nintendo 主机销量追踪社区 Famiboards 的讨论帖</td>
+    </tr>
+    <!-- 174 -->
+    <tr data-type="游戏媒体" data-tag="no">
+      <td>174</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://www.resetera.com/threads/circana-us-sales-nov-2025-ps5-1-nsw2-2-nex-playground-3-units-4-dollars-cod-bo7-1-double-digit-decline-from-bo6-2d-month-bf6-2-nba-2k26-3.1385833/" target="_blank">ResetEra</a></td>
+      <td><span class="badge badge-gaming">游戏论坛</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.resetera.com/threads/circana-us-sales-nov-2025-ps5-1-nsw2-2-nex-playground-3-units-4-dollars-cod-bo7-1-double-digit-decline-from-bo6-2d-month-bf6-2-nba-2k26-3.1385833/" target="_blank">Circana US Sales Nov 2025: PS5 #1, NSW2 #2, Nex Playground #3 Units / #4 Dollars</a></span></td>
+      <td class="link-cell"><span class="no-link">销量数据</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">⭐ 官方 Circana 月度销量数据帖；确认 Nex 11月排名第3（数量）</td>
+    </tr>
+    <!-- 175 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>175</td><td class="date">2025-12</td>
+      <td class="media-name"><a href="https://www.techbuzz.ai/articles/nex-playground-s-holiday-surge-leaves-xbox-in-the-dust" target="_blank">TechBuzz AI</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.techbuzz.ai/articles/nex-playground-s-holiday-surge-leaves-xbox-in-the-dust" target="_blank">Nex Playground's Holiday Surge Leaves Xbox in the Dust</a></span></td>
+      <td class="link-cell"><span class="no-link">新闻分析</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">AI 科技媒体，假日季销量超越 Xbox 的分析报道</td>
+    </tr>
+    <!-- 176 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>176</td><td class="date">2023-08</td>
+      <td class="media-name"><a href="https://www.flatpanelshd.com/news.php?subaction=showfull&id=1691484410" target="_blank">FlatpanelsHD</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://www.flatpanelshd.com/news.php?subaction=showfull&id=1691484410" target="_blank">A 'Nintendo Wii' in your TV? A new startup is working on it</a></span></td>
+      <td class="link-cell"><span class="no-link">早期报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">FlatpanelsHD 第二篇；2023年8月最早期的欧洲媒体报道之一</td>
+    </tr>
+    <!-- 177 -->
+    <tr data-type="科技媒体" data-tag="no">
+      <td>177</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://geekchamp.com/nex-playground-review-a-welcome-wii-replacement/" target="_blank">GeekChamp</a></td>
+      <td><span class="badge badge-tech">科技媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://geekchamp.com/nex-playground-review-a-welcome-wii-replacement/" target="_blank">Nex Playground review: A welcome Wii replacement</a></span></td>
+      <td class="link-cell"><span class="no-link">评测文章</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">科技评测站，定位为 Wii 的后继者，含联盟链接概率高</td>
+    </tr>
+    <!-- 178 -->
+    <tr data-type="礼品导购" data-tag="no">
+      <td>178</td><td class="date">2025-11</td>
+      <td class="media-name"><a href="https://cordcuttersnews.com/make-this-holiday-season-fun-get-the-ai-powered-virtual-nex-playground-black-friday-deal/" target="_blank">Cord Cutters News</a></td>
+      <td><span class="badge badge-lifestyle">礼品导购</span></td>
+      <td class="title"><span class="title-text"><a href="https://cordcuttersnews.com/make-this-holiday-season-fun-get-the-ai-powered-virtual-nex-playground-black-friday-deal/" target="_blank">Make This Holiday Season Fun — Get the AI-Powered Nex Playground Black Friday Deal</a></span></td>
+      <td class="link-cell"><span class="no-link">促销报道</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Cord Cutters News（科技/流媒体受众），黑色星期五促销推广</td>
+    </tr>
+    <!-- 179 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>179</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://famousaspect.substack.com/p/meet-nex-playground-the-family-console" target="_blank">Famous Aspect (Substack)</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://famousaspect.substack.com/p/meet-nex-playground-the-family-console" target="_blank">Meet Nex Playground, the family console that won Christmas 2025</a></span></td>
+      <td class="link-cell"><span class="no-link">Substack 分析</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">科技/商业 Substack newsletter，分析 Nex 赢得圣诞季的原因</td>
+    </tr>
+    <!-- 180 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>180</td><td class="date">2026-01</td>
+      <td class="media-name"><a href="https://finance.yahoo.com/news/dude-perfect-shoots-scores-bringing-143100768.html" target="_blank">Yahoo Finance</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://finance.yahoo.com/news/dude-perfect-shoots-scores-bringing-143100768.html" target="_blank">Dude Perfect Shoots and Scores: Bringing Signature Trick-Shots to Nex Playground (Yahoo Finance)</a></span></td>
+      <td class="link-cell"><span class="no-link">PR 转载</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Dude Perfect × Nex 合作 PR 的 Yahoo Finance 同步转载</td>
+    </tr>
+    <!-- 181 -->
+    <tr data-type="商业分析" data-tag="no">
+      <td>181</td><td class="date">2025</td>
+      <td class="media-name"><a href="https://archive.com/customer-stories/nex-playground" target="_blank">Archive.com</a></td>
+      <td><span class="badge badge-business">商业媒体</span></td>
+      <td class="title"><span class="title-text"><a href="https://archive.com/customer-stories/nex-playground" target="_blank">Nex Playground — Customer Success Story</a></span></td>
+      <td class="link-cell"><span class="no-link">案例研究</span></td><td><span class="no-tag">—</span></td>
+      <td class="note">Archive.com（UGC 内容管理平台）客户成功案例，揭示 Nex 的内容运营工具</td>
+    </tr>
+
+  </tbody>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 模块 2: TikTok 视频 -->
+<div class="module">
+  <div class="module-header" onclick="toggleModule('tiktok')">
+    <div class="module-title">
+      <span>🎵 TikTok 视频</span>
+      <span class="module-count" id="tiktok-module-count">8 条</span>
+    </div>
+    <span class="module-toggle" id="toggle-tiktok">▼</span>
+  </div>
+  <div class="module-content" id="content-tiktok">
+    <div class="controls">
+      <input type="search" id="search-tiktok" placeholder="搜索创作者/标题/内容…">
+      <button class="filter-btn active" data-filter-tiktok="all">全部</button>
+      <button class="filter-btn" data-filter-tiktok="shop">TikTok Shop</button>
+      <button class="filter-btn" data-filter-tiktok="organic">有机内容</button>
+    </div>
+    <div class="table-wrap">
+      <table id="tiktok-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>创作者</th>
+            <th>视频标题</th>
+            <th>互动数据</th>
+            <th>内容描述</th>
+            <th>类型</th>
+            <th>视频链接</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- TikTok 数据等 agent 返回后填充 -->
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:#999;">⏳ 正在抓取 TikTok 数据...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 模块 3: YouTube 视频 -->
+<div class="module">
+  <div class="module-header" onclick="toggleModule('youtube')">
+    <div class="module-title">
+      <span>▶️ YouTube 视频</span>
+      <span class="module-count">4 条</span>
+    </div>
+    <span class="module-toggle" id="toggle-youtube">▼</span>
+  </div>
+  <div class="module-content" id="content-youtube">
+    <div class="controls">
+      <input type="search" id="search-youtube" placeholder="搜索频道/标题…">
+    </div>
+    <div class="table-wrap">
+      <table id="youtube-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>频道名称</th>
+            <th>视频标题</th>
+            <th>观看数</th>
+            <th>点赞数</th>
+            <th>发布日期</th>
+            <th>内容描述</th>
+            <th>视频链接</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td class="creator-name">First L00k Toys</td>
+            <td>Nex Playground Active Gaming Console @Holiday of Play 2024</td>
+            <td>549</td>
+            <td>—</td>
+            <td class="date">2024</td>
+            <td class="video-desc">玩具展会报道视频，Holiday of Play 2024 活动现场</td>
+            <td><a href="https://www.youtube.com/watch?v=LhTrzXyrCvs" target="_blank">观看</a></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td class="creator-name">Nex Playground 官方</td>
+            <td>Unleash Family Fun with the Nex Playground Console</td>
+            <td>—</td>
+            <td>—</td>
+            <td class="date">2024-03</td>
+            <td class="video-desc">官方产品宣传视频</td>
+            <td><a href="https://www.youtube.com/watch?v=yP4y-Sg_Sso" target="_blank">观看</a></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td class="creator-name">独立评测频道</td>
+            <td>Nex Playground Review: Worth the hype!</td>
+            <td>—</td>
+            <td>—</td>
+            <td class="date">2024-06</td>
+            <td class="video-desc">第三方科技/游戏评测</td>
+            <td><a href="https://www.youtube.com/watch?v=1xN51Fk3kQk" target="_blank">观看</a></td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td class="creator-name">独立评测频道</td>
+            <td>Nex Playground video game console REVIEW</td>
+            <td>—</td>
+            <td>—</td>
+            <td class="date">2026-02-04</td>
+            <td class="video-desc">ResetEra 社区引用的评测视频</td>
+            <td><a href="https://youtu.be/xBUA-UtwqQo" target="_blank">观看</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 模块 4: Amazon Live -->
+<div class="module">
+  <div class="module-header" onclick="toggleModule('amazonlive')">
+    <div class="module-title">
+      <span>📺 Amazon Live</span>
+      <span class="module-count">8 条</span>
+    </div>
+    <span class="module-toggle" id="toggle-amazonlive">▼</span>
+  </div>
+  <div class="module-content" id="content-amazonlive">
+    <div class="controls">
+      <input type="search" id="search-amazonlive" placeholder="搜索创作者/标题…">
+    </div>
+    <div class="table-wrap">
+      <table id="amazonlive-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>创作者</th>
+            <th>直播标题</th>
+            <th>发布日期</th>
+            <th>产品链接</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td class="creator-name">Amazon Live 创作者</td>
+            <td>My honest review of the Nex Playground!</td>
+            <td class="date">—</td>
+            <td><a href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank" class="amz-link">B0D2JGYX3F</a></td>
+            <td class="note">Amazon Live 内置佣金机制</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td class="creator-name">Taylor Smith</td>
+            <td>Nex Playground Review, Is it worth it for kids and families?</td>
+            <td class="date">—</td>
+            <td><a href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank" class="amz-link">B0D2JGYX3F</a></td>
+            <td class="note">Amazon Live 内置佣金</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td class="creator-name">Savannah Miller</td>
+            <td>Review - Nex Playground - The Active Play System</td>
+            <td class="date">2026-01-10</td>
+            <td><a href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank" class="amz-link">B0D2JGYX3F</a></td>
+            <td class="note">—</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td class="creator-name">Katie S.</td>
+            <td>Honest Review of Nex Playground Video System</td>
+            <td class="date">2025-06-24</td>
+            <td><a href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank" class="amz-link">B0D2JGYX3F</a></td>
+            <td class="note">—</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td class="creator-name">DM Finds</td>
+            <td>Nex Playground Game System Review: Why I LOVE It!</td>
+            <td class="date">2024-07-25</td>
+            <td><a href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank" class="amz-link">B0D2JGYX3F</a></td>
+            <td class="note">—</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td class="creator-name">Kenneth Steinkamp</td>
+            <td>In Depth Review of Nex Playground</td>
+            <td class="date">2024-07-16</td>
+            <td><a href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank" class="amz-link">B0D2JGYX3F</a></td>
+            <td class="note">—</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td class="creator-name">Kate</td>
+            <td>Nex Playground Honest Review - Guilt free screen time?!</td>
+            <td class="date">2025-01-16</td>
+            <td><a href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank" class="amz-link">B0D2JGYX3F</a></td>
+            <td class="note">"无负罪感屏幕时间"角度</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td class="creator-name">Kevin Lu | Parenting</td>
+            <td>Nex Playground Full Review</td>
+            <td class="date">2024-07-23</td>
+            <td><a href="https://www.amazon.com/dp/B0D2JGYX3F" target="_blank" class="amz-link">B0D2JGYX3F</a></td>
+            <td class="note">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  数据采集时间：2026-04-07 · ASIN B0D2JGYX3F · 仅供内部研究使用<br>
+  * 虚线边框的 tag 为推断值，未直接从目标页面确认
+</footer>
+
+<script>
+  // 模块折叠/展开
+  function toggleModule(moduleId) {
+    const content = document.getElementById('content-' + moduleId);
+    const toggle = document.getElementById('toggle-' + moduleId);
+    content.classList.toggle('collapsed');
+    toggle.classList.toggle('collapsed');
+  }
+
+  // PR 文章筛选
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.filter) {
+        document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyPRFilters();
+      }
+    });
+  });
+
+  document.getElementById('search-pr').addEventListener('input', applyPRFilters);
+
+  function applyPRFilters() {
+    const activeBtn = document.querySelector('.filter-btn.active[data-filter]');
+    const filter = activeBtn ? activeBtn.dataset.filter : 'all';
+    const query = document.getElementById('search-pr').value.toLowerCase();
+
+    document.querySelectorAll('#pr-table tbody tr').forEach(row => {
+      const type = row.dataset.type || '';
+      const hasTag = row.dataset.tag === 'yes';
+      const text = row.textContent.toLowerCase();
+
+      let show = true;
+      if (filter === 'has-tag' && !hasTag) show = false;
+      else if (filter !== 'all' && filter !== 'has-tag' && !type.includes(filter)) show = false;
+      if (query && !text.includes(query)) show = false;
+
+      row.classList.toggle('hidden', !show);
+    });
+  }
+
+  // TikTok 筛选
+  document.getElementById('search-tiktok').addEventListener('input', () => {
+    const query = document.getElementById('search-tiktok').value.toLowerCase();
+    document.querySelectorAll('#tiktok-table tbody tr').forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.classList.toggle('hidden', query && !text.includes(query));
+    });
+  });
+
+  // YouTube 筛选
+  document.getElementById('search-youtube').addEventListener('input', () => {
+    const query = document.getElementById('search-youtube').value.toLowerCase();
+    document.querySelectorAll('#youtube-table tbody tr').forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.classList.toggle('hidden', query && !text.includes(query));
+    });
+  });
+
+  // Amazon Live 筛选
+  document.getElementById('search-amazonlive').addEventListener('input', () => {
+    const query = document.getElementById('search-amazonlive').value.toLowerCase();
+    document.querySelectorAll('#amazonlive-table tbody tr').forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.classList.toggle('hidden', query && !text.includes(query));
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# 浏览器持久化数据（含登录 cookies，不可提交）
+browser_data/
+
+# Claude Code 本地配置（含个人权限记录，不可提交）
+.claude/settings.local.json
+CLAUDE.local.md
+
+# 调试产物
+after_login.png
+*.png
+
+# 原始未过滤抓取数据（冗余，不推）
+tiktok_raw.json
+tiktok_raw_new.json
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 编辑器
+.vscode/
+.idea/
+
+# 系统文件
+.DS_Store
+Thumbs.db
