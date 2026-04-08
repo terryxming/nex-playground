@@ -1,5 +1,7 @@
 # Nex Playground — 项目说明
 
+> **IMPORTANT — 每次会话开始、接收任何指令前，必须先读完"工作流偏好"章节再行动。**
+
 针对 Amazon ASIN **B0D2JGYX3F**（Nex Playground 体感游戏主机）的 PR 传播与联盟链接调研项目。
 
 ## 环境设置
